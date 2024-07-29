@@ -1,5 +1,10 @@
-tensorflow
-numpy
 pandas
+numpy
+tensorflow
+keras
 scikit-learn
-tqdm
+matplotlib
+seaborn
+flask
+requests
+beautifulsoup4
