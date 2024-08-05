@@ -5,9 +5,11 @@ import os
 import shutil
 from tqdm import tqdm
 
-# Configuración de logging
-logging.basicConfig(filename='logs/master_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
+# Asegúrate de que el directorio 'logs' exista
+os.makedirs('logs', exist_ok=True)
 
+# Configura el logging
+logging.basicConfig(filename='logs/master_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 def execute_script(script_path, description, pbar):
     if not os.path.exists(script_path):
@@ -32,9 +34,9 @@ def main():
 
 
     scripts_to_execute = [
-        ('JarvisPhone/training/train.py', 'Training the Model'),
-        ('JarvisPhone/predictions.py', 'Making Predictions'),
-        ('JarvisPhone/web_content/continuous_learning.py', 'Continuous Learning')
+        (r'TEST\JarvisPhone\training\train.py', 'Training the Model'),
+        (r'TEST\JarvisPhone\predictions.py', 'Making Predictions'),
+        (r'TEST\JarvisPhone\web_content\continuous_learning.py', 'Continuous Learning')
     ]
 
     threads = []

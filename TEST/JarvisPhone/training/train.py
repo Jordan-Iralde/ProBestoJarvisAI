@@ -3,6 +3,7 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import logging
+import os
 
 # Configuración de logging
 logging.basicConfig(filename='train.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -45,7 +46,7 @@ def build_model(input_shape):
 def train_model():
     try:
         # Cargar y preparar datos
-        X, y = load_and_prepare_data('JarvisPhone/data/titanic.csv')
+        X, y = load_and_prepare_data(r'C:\Users\yo\Desktop\Test\JarvisPhone\data\titanic.csv')
         if X is None or y is None:
             logging.error('Data preparation failed. Exiting training.')
             return
@@ -65,8 +66,11 @@ def train_model():
 
         model.fit(X_train, y_train, epochs=10, batch_size=32, validation_data=(X_test, y_test))
         
+        # Crear la carpeta de resultados si no existe
+        os.makedirs(r'C:\Users\yo\Desktop\Test\results', exist_ok=True)
+        
         # Guardar el modelo en el formato .keras
-        model.save('results/model.keras')
+        model.save(r'C:\Users\yo\Desktop\Test\results\model.keras')
         logging.info('Model trained and saved successfully.')
     except Exception as e:
         logging.error(f'Error during training: {e}')
