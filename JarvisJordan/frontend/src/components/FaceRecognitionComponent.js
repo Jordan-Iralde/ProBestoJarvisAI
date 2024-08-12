@@ -1,1 +1,0 @@
-// FaceRecognitionComponent.js
