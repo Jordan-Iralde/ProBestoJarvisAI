@@ -7,9 +7,14 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 from bs4 import BeautifulSoup
-import random
+from pymongo import MongoClient
 
-SEARCH_QUERIES = ["machine learning", "artificial intelligence", "data science"]
+# Conexión a la base de datos MongoDB
+client = MongoClient('mongodb://localhost:27017/')
+db = client['jarvisphone_db']
+collection = db['web_content']
+
+SEARCH_QUERIES = ["Dia del Gato"]
 NUM_ITERATIONS = 12
 SLEEP_INTERVAL = 5  # Simulate sleep interval for testing
 
@@ -32,9 +37,6 @@ class App(tk.Tk):
         self.start_button = tk.Button(self, text="Iniciar Entrenamiento", command=self.start_training)
         self.start_button.pack(pady=10)
 
-        self.stop_button = tk.Button(self, text="Detener Entrenamiento", command=self.stop_training, state="disabled")
-        self.stop_button.pack(pady=10)
-
         self.content_label = tk.Label(self, text="Contenidos Recuperados", bg="black", fg="white")
         self.content_label.pack(pady=10)
 
@@ -51,50 +53,27 @@ class App(tk.Tk):
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
     def start_training(self):
-        self.stop_button.config(state="normal")
-        self.start_button.config(state="disabled")
         self.progress_bar["value"] = 0
-        self.is_running = True
         threading.Thread(target=self.run_training).start()
-
-    def stop_training(self):
-        self.is_running = False
-        self.stop_button.config(state="disabled")
-        self.start_button.config(state="normal")
 
     def run_training(self):
         total_iterations = NUM_ITERATIONS
         data_collected = []
 
-        with ThreadPoolExecutor() as executor:
-            for iteration in range(total_iterations):
-                if not self.is_running:
-                    break
-                self.progress_bar["value"] += (100 / total_iterations)
-                futures = [executor.submit(self.fetch_web_content, query) for query in SEARCH_QUERIES]
-                contents = []
-                for future in as_completed(futures):
-                    content = future.result()
-                    if content:
-                        contents.extend(content)
-                        self.content_text.insert(tk.END, f"Content for query:\n")
-                        self.content_text.insert(tk.END, "\n".join(content) + "\n\n")
-                    else:
-                        self.content_text.insert(tk.END, "No content fetched for query\n\n")
-
-                data_collected.append(len(contents))
-                self.update_graph(data_collected)
-                time.sleep(SLEEP_INTERVAL)  # Simulating training time
+        for iteration in range(total_iterations):
+            self.progress_bar["value"] += (100 / total_iterations)
+            contents = self.fetch_and_display_content()
+            data_collected.append(len(contents))
+            self.update_graph(data_collected)
+            self.save_to_database(contents)
+            time.sleep(SLEEP_INTERVAL)  # Simulating training time
 
         self.progress_bar["value"] = 100
-        self.stop_training()  # Reset buttons after training
 
     def fetch_web_content(self, query):
         try:
             url = f"https://www.google.com/search?q={query}"
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
-            response = requests.get(url, headers=headers)
+            response = requests.get(url)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
                 snippets = soup.find_all('div', class_='BNeawe s3v9rd AP7Wnd')
@@ -103,6 +82,29 @@ class App(tk.Tk):
                 return []
         except Exception as e:
             return []
+
+    def fetch_and_display_content(self):
+        contents = []
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(self.fetch_web_content, query) for query in SEARCH_QUERIES]
+            for future in as_completed(futures):
+                content = future.result()
+                if content:
+                    contents.extend(content)
+                    self.content_text.insert(tk.END, f"Content for query:\n")
+                    self.content_text.insert(tk.END, "\n".join(content) + "\n\n")
+                else:
+                    self.content_text.insert(tk.END, "No content fetched for query\n\n")
+        return contents
+
+    def save_to_database(self, contents):
+        if contents:
+            data = {
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'content': contents
+            }
+            collection.insert_one(data)
+            print(f"Data saved to MongoDB: {data}")
 
     def update_graph(self, data_collected):
         self.line.set_xdata(range(len(data_collected)))
