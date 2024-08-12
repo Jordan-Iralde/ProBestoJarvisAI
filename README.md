@@ -9,3 +9,5 @@ PASOS:
 
 
 Si hacemos esto, podemos hacer una PC muy potente, juegos en poco tiempo, programas en poco tiempo, etc.
+
+https://docs.google.com/document/d/1h3JylEJwq64bt_vFMJj3KFBxwdMB1X_3Da76SyWB0NE/edit?usp=sharing
