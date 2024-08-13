@@ -14,7 +14,7 @@ client = MongoClient('mongodb://localhost:27017/')
 db = client['jarvisphone_db']
 collection = db['web_content']
 
-SEARCH_QUERIES = ["Dia del Gato"]
+SEARCH_QUERIES = ["Diferencia entre App Web y Pagina Web"]
 NUM_ITERATIONS = 12
 SLEEP_INTERVAL = 5  # Simulate sleep interval for testing
 

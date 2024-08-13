@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logging.basicConfig(filename='logs/continuous_learning_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
-SEARCH_QUERIES = ["Dia del Gato"]
+SEARCH_QUERIES = ["Diferencia entre App Web y Pagina Web"]
 NUM_ITERATIONS = 12
 SLEEP_INTERVAL = 300  # 5 minutes
 
