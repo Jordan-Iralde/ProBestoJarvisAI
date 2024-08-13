@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import simpledialog, messagebox
 import os
 
-# Configura tu clave API de SerpAPI
+
 serpapi_api_key = "8a1bb6b90ec305cc723b928471217e90d4b5fcc6b6430f137ccee81e2a96b7c1"
 
 def obtener_contenido_completo(url):
