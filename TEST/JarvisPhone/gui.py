@@ -1,133 +1,208 @@
+import json
+import os
+import subprocess
+import sys
 import tkinter as tk
-from tkinter import ttk
+from tkinter import filedialog, messagebox
+from pathlib import Path
+from tqdm import tqdm
+import logging
+from pymongo import MongoClient
 import threading
 import time
+from tkinter import ttk
+from bs4 import BeautifulSoup
+import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import requests
-from bs4 import BeautifulSoup
-import pymongo
-from collections import OrderedDict
 
-# MongoDB Atlas Connection
-client = pymongo.MongoClient("mongodb+srv://JarvisUser:2wssnlZhLTw5WuvF4@jorvisai.lrskk.mongodb.net/")
-db = client["JarvisAI"]
-collection = db["web_searches"]
+# Conexión a MongoDB Atlas
+client = MongoClient("mongodb+srv://JarvisUser:2wssnlZhLTw5WuvF4@jorvisai.lrskk.mongodb.net/")
+db = client['JarvisAI']
+collection = db['b']
 
-SEARCH_QUERIES = ["machine learning", "artificial intelligence", "data science"]
+# Configuración de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+SEARCH_QUERIES = ["Mejorar Codigo"]
 NUM_ITERATIONS = 12
-SLEEP_INTERVAL = 5
+SLEEP_INTERVAL = 5  # Intervalo de espera simulado para pruebas
 
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("JarvisPhone")
-        self.geometry("1200x900")
-        self.configure(bg="#1E1E1E")
+def create_file(file_path: Path, content: str) -> str:
+    """Crea un archivo con el contenido especificado."""
+    try:
+        file_path.write_text(content)
+        logging.info(f"Archivo creado: {file_path.resolve()}")
+        return f"Archivo creado: {file_path.resolve()}"
+    except Exception as e:
+        logging.error(f"Error al crear el archivo {file_path}: {e}")
+        return f"Error al crear el archivo {file_path}: {e}"
 
-        self.create_widgets()
-        self.start_training()
+def create_structure(base_dir: Path, items: list) -> list:
+    """Crea la estructura de directorios y archivos según la configuración."""
+    log = []
+    for item in tqdm(items, desc="Creando estructura", unit="item"):
+        path = base_dir / item['path']
+        if item['type'] == 'directory':
+            path.mkdir(parents=True, exist_ok=True)
+            log.append(f"Directorio creado: {path.resolve()}")
+        elif item['type'] == 'file':
+            path.parent.mkdir(parents=True, exist_ok=True)
+            content = item.get('content', f"# Contenido inicial para {path.name}")
+            log.append(create_file(path, content))
+        else:
+            log.append(f"Error: Tipo desconocido para {path}")
+    return log
 
-    def create_widgets(self):
-        # Improved visual styles
-        self.style = ttk.Style()
-        self.style.configure('TButton', font=('Helvetica', 12), padding=10)
-        self.style.configure('TLabel', background='#1E1E1E', foreground='white', font=('Helvetica', 12))
+def load_config(file_path: Path) -> list:
+    """Carga y valida la configuración del archivo JSON."""
+    try:
+        with open(file_path, 'r') as f:
+            items = json.load(f)
+            if not isinstance(items, list):
+                raise ValueError("La configuración debe ser una lista en el archivo JSON.")
+            for item in items:
+                if not isinstance(item, dict) or 'type' not in item or 'path' not in item:
+                    raise ValueError("Cada elemento debe ser un diccionario con 'type' y 'path'.")
+                if item['type'] not in ['directory', 'file']:
+                    raise ValueError("El valor de 'type' debe ser 'directory' o 'file'.")
+            return items
+    except (json.JSONDecodeError, ValueError, FileNotFoundError) as e:
+        logging.error(f"Error al leer el archivo de configuración: {e}")
+        raise RuntimeError(f"Error al leer el archivo de configuración: {e}")
 
-        self.header_frame = tk.Frame(self, bg="#1E1E1E")
-        self.header_frame.pack(pady=10)
+def open_file_explorer(directory: Path):
+    """Abre el explorador de archivos en el directorio especificado."""
+    try:
+        if sys.platform == "win32":
+            os.startfile(directory)
+        elif sys.platform == "darwin":
+            os.system(f"open {directory}")
+        else:
+            os.system(f"xdg-open {directory}")
+        logging.info(f"Explorador de archivos abierto en {directory.resolve()}.")
+    except Exception as e:
+        logging.error(f"No se pudo abrir el explorador de archivos: {e}")
+        messagebox.showerror("Error", f"No se pudo abrir el explorador de archivos: {e}")
 
-        self.progress_label = ttk.Label(self.header_frame, text="Progreso de Entrenamiento")
-        self.progress_label.pack(side=tk.LEFT, padx=10)
+def gui_setup():
+    """Configura y ejecuta la interfaz gráfica."""
+    root = tk.Tk()
+    root.title("Creador de Estructura de Proyecto")
+    root.geometry("1200x800")
+    root.configure(bg="#2b2b2b")  # Fondo oscuro para un look moderno
 
-        self.progress_bar = ttk.Progressbar(self.header_frame, orient="horizontal", length=500, mode="determinate")
-        self.progress_bar.pack(side=tk.LEFT, padx=10)
+    def select_base_dir():
+        directory = filedialog.askdirectory(title="Seleccionar Directorio Base")
+        if directory:
+            base_dir.set(directory)
+    
+    def select_config_file():
+        file = filedialog.askopenfilename(title="Seleccionar Archivo de Configuración", filetypes=[("Archivos JSON", "*.json")])
+        if file:
+            config_file.set(file)
 
-        self.content_frame = tk.Frame(self, bg="#1E1E1E")
-        self.content_frame.pack(pady=10)
-
-        self.content_label = ttk.Label(self.content_frame, text="Contenidos Recuperados")
-        self.content_label.pack(pady=10)
-
-        self.content_text = tk.Text(self.content_frame, width=100, height=20, bg="#2E2E2E", fg="white", font=('Helvetica', 10))
-        self.content_text.pack(pady=10)
-
-        self.figure = plt.Figure(figsize=(7, 5), dpi=100)
-        self.ax = self.figure.add_subplot(111)
-        self.ax.set_title("Crecimiento de la IA", color="white")
-        self.ax.set_xlabel("Iteraciones", color="white")
-        self.ax.set_ylabel("Datos Recopilados", color="white")
-        self.ax.spines['bottom'].set_color('white')
-        self.ax.spines['top'].set_color('white') 
-        self.ax.spines['right'].set_color('white')
-        self.ax.spines['left'].set_color('white')
-        self.ax.tick_params(axis='x', colors='white')
-        self.ax.tick_params(axis='y', colors='white')
-        self.line, = self.ax.plot([], [], 'c-')
-        self.canvas = FigureCanvasTkAgg(self.figure, self)
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-    def start_training(self):
-        self.progress_bar["value"] = 0
-        threading.Thread(target=self.run_training).start()
-
-    def run_training(self):
-        total_iterations = NUM_ITERATIONS
-        data_collected = []
-
-        for iteration in range(total_iterations):
-            self.progress_bar["value"] += (100 / total_iterations)
-            contents = self.fetch_and_display_content()
-            contents = self.remove_duplicates(contents)
-            data_collected.append(len(contents))
-            self.save_data_to_mongo(contents)
-            self.update_graph(data_collected)
-            time.sleep(SLEEP_INTERVAL)
-
-        self.progress_bar["value"] = 100
-
-    def fetch_web_content(self, query):
+    def run_process():
+        base_path = Path(base_dir.get())
+        config_path = Path(config_file.get())
+        if not base_path or not config_path:
+            messagebox.showerror("Error", "Directorio base o archivo de configuración no seleccionados.")
+            return
         try:
-            url = f"https://www.google.com/search?q={query}"
-            response = requests.get(url)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
-                snippets = soup.find_all('div', class_='BNeawe s3v9rd AP7Wnd')
-                return [snippet.get_text() for snippet in snippets]
-            else:
-                return []
+            run_script(base_path, config_path)
+            open_file_explorer(base_path)  # Intentar abrir el explorador de archivos en el directorio base
         except Exception as e:
-            return []
+            messagebox.showerror("Error", str(e))
 
-    def fetch_and_display_content(self):
-        contents = []
-        with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(self.fetch_web_content, query) for query in SEARCH_QUERIES]
+    base_dir = tk.StringVar()
+    config_file = tk.StringVar()
+
+    # Componentes GUI para el creador de carpetas y archivos
+    tk.Label(root, text="Directorio Base:", bg="#2b2b2b", fg="white", font=("Helvetica", 12)).pack(pady=5)
+    tk.Entry(root, textvariable=base_dir, width=70, bg="#1e1e1e", fg="white").pack(pady=5)
+    tk.Button(root, text="Seleccionar Directorio Base", command=select_base_dir, bg="#4CAF50", fg="white", font=("Helvetica", 12)).pack(pady=5)
+
+    tk.Label(root, text="Archivo de Configuración:", bg="#2b2b2b", fg="white", font=("Helvetica", 12)).pack(pady=5)
+    tk.Entry(root, textvariable=config_file, width=70, bg="#1e1e1e", fg="white").pack(pady=5)
+    tk.Button(root, text="Seleccionar Archivo de Configuración", command=select_config_file, bg="#4CAF50", fg="white", font=("Helvetica", 12)).pack(pady=5)
+
+    tk.Button(root, text="Crear Estructura", command=run_process, bg="#2196F3", fg="white", font=("Helvetica", 14)).pack(pady=20)
+
+    # Componentes GUI para el sistema de búsqueda y almacenamiento
+    tk.Label(root, text="Progreso de Entrenamiento", bg="#2b2b2b", fg="white", font=("Helvetica", 16)).pack(pady=10)
+    progress_bar = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
+    progress_bar.pack(pady=10)
+
+    content_text = tk.Text(root, width=100, height=20, bg="#1e1e1e", fg="white", font=("Consolas", 12))
+    content_text.pack(pady=10)
+
+    figure = plt.Figure(figsize=(8, 4), dpi=100)
+    ax = figure.add_subplot(111)
+    ax.set_title("Crecimiento de la IA")
+    ax.set_xlabel("Iteraciones")
+    ax.set_ylabel("Datos Recopilados")
+    line, = ax.plot([], [], color="blue")
+    canvas = FigureCanvasTkAgg(figure, root)
+    canvas.get_tk_widget().pack(pady=20)
+
+    root.mainloop()
+
+def run_script(base_dir: Path, config_file: Path):
+    """Ejecuta el script para crear la estructura de directorios y archivos."""
+    if not base_dir.exists():
+        raise FileNotFoundError(f"El directorio base no existe: {base_dir.resolve()}")
+    
+    items = load_config(config_file)
+    log_entries = create_structure(base_dir, items)
+    
+    logging.info("Estructura creada exitosamente.")
+
+    def scrape_and_store():
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(search_and_store, query) for query in SEARCH_QUERIES]
             for future in as_completed(futures):
-                content = future.result()
-                if content:
-                    contents.extend(content)
-                    self.content_text.insert(tk.END, f"Content for query:\n")
-                    self.content_text.insert(tk.END, "\n".join(content) + "\n\n")
-                else:
-                    self.content_text.insert(tk.END, "No content fetched for query\n\n")
-        return contents
+                try:
+                    data = future.result()
+                    logging.info(f"Datos almacenados: {data}")
+                except Exception as e:
+                    logging.error(f"Error en la búsqueda o almacenamiento de datos: {e}")
 
-    def remove_duplicates(self, contents):
-        return list(OrderedDict.fromkeys(contents))
+    threading.Thread(target=scrape_and_store, daemon=True).start()
 
-    def save_data_to_mongo(self, contents):
-        normalized_data = [{"query": query, "content": content} for query in SEARCH_QUERIES for content in contents]
-        collection.insert_many(normalized_data)
+def search_and_store(query):
+    """Realiza la búsqueda y almacena los resultados en MongoDB."""
+    base_url = "https://www.bing.com/search"
+    params = {
+        "q": query,
+        "count": 50,  # Número de resultados a recuperar
+    }
+    response = requests.get(base_url, params=params, timeout=10)
+    response.raise_for_status()  # Lanzar excepción para cualquier respuesta de error
 
-    def update_graph(self, data_collected):
-        self.line.set_xdata(range(len(data_collected)))
-        self.line.set_ydata(data_collected)
-        self.ax.relim()
-        self.ax.autoscale_view()
-        self.canvas.draw()
+    soup = BeautifulSoup(response.text, 'html.parser')
+    results = []
+
+    for result in soup.select('li.b_algo'):
+        title = result.select_one('h2 a').text if result.select_one('h2 a') else 'Sin título'
+        description = result.select_one('p').text if result.select_one('p') else 'Sin descripción'
+        link = result.select_one('h2 a')['href'] if result.select_one('h2 a') else 'Sin enlace'
+        
+        results.append({
+            'query': query,
+            'title': title,
+            'description': description,
+            'link': link
+        })
+
+    # Insertar los resultados en la colección MongoDB
+    if results:
+        collection.insert_many(results)
+        logging.info(f"Resultados almacenados para la consulta: {query}")
+    else:
+        logging.warning(f"No se encontraron resultados para la consulta: {query}")
+
+    return results
 
 if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+    gui_setup()

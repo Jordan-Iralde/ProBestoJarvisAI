@@ -2,3 +2,6 @@ programacion
 Aprender
 Mejorar
 Como
+    client = pymongo.MongoClient("mongodb+srv://JarvisUser:2wssnlZhLTw5WuvF4@jorvisai.lrskk.mongodb.net/")
+    db = client["JarvisAI"]
+    collection = db["web_searches"]
