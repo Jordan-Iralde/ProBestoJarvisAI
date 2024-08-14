@@ -1,12 +1,20 @@
 print("inicio")
 print("en este programa te solucionaremos la vida y te resolveremos los circuitos electricos bro")
 
-tipo_circuito = str(input("ingrese que tipo de circuito quiere resolver(Mixto, Serie, Paralelo): "))
+def eleccion():
+        try:
+
+            tipo_circuito = input("ingrese que tipo de circuito quiere resolver(Mixto, Serie, Paralelo): ")
+            
+        except ValueError: 
+            print("Verifique si la eleccion la escribio bien.")
+        
+        return tipo_circuito
 
 def circuito_serie(): 
     try:
         voltaje = int(input("ingrese la cantidad de voltaje que tiene tu circuito: "))
-        cantidad_resistencias = int(input("ingrese la cantidadde resistencias que tiene su circuito: "))
+        cantidad_resistencias = int(input("ingrese la cantidad de resistencias que tiene su circuito: "))
         resistencias = []
         for i in range(cantidad_resistencias):
             valor = float(input(f"ingrese el valor de R{i+1} en ohmios: "))
@@ -23,26 +31,32 @@ def circuito_serie():
 
 def circuito_paralelo():
     try:
-        voltaje = int(input("ingrese la cantidad de voltaje que tiene tu circuito: "))
-        cantidad_de_resistencias = int(input("Ingrese la cantidad de resistencias"))
-        resistencias = []
+        voltaje_2 = int(input("ingrese la cantidad de voltaje que tiene tu circuito: "))
+        cantidad_de_resistencias_2 = int(input("Ingrese la cantidad de resistencias: "))
+        resistencias_2 = []
         
-        for i in range(cantidad_de_resistencias):
-            valor = int(input(f"ingrese el valor de R{i+1}: "))
-            resistencias.append(valor)
+        for i in range(cantidad_de_resistencias_2):
+            valor_2 = int(input(f"ingrese el valor de R{i+1}: "))
+            resistencias_2.append(valor_2)
 
-        suma_inversos = sum(1 / r for r in resistencias)
-        RT = 1 / suma_inversos
-        print(f"La resistencia total del circuito es de {RT} ohmios")
+        suma_inversos = sum(1 / r for r in resistencias_2) 
+        RT_2 = 1 / suma_inversos
+       
+        print(f"La resistencia total del circuito es de {RT_2} ohmios")
     except ValueError:
         print("ingrese un valor en numerico :b")
 
 
+eleccion_valor = eleccion()
 
 
-while True: 
-    if tipo_circuito == "serie" or "Serie":
-        circuito_serie()
-        break
-    elif tipo_circuito == "paralelo" or "Paralelo":
+
+  
+if eleccion_valor == 'paralelo' or eleccion_valor == 'Paralelo':
         circuito_paralelo()
+elif eleccion_valor == 'serie' or  eleccion_valor ==  'Serie':
+        circuito_serie()
+        
+        
+        
+        
