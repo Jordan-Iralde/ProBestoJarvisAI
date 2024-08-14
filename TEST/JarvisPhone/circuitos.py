@@ -31,18 +31,23 @@ def circuito_serie():
 
 def circuito_paralelo():
     try:
-        voltaje_2 = int(input("ingrese la cantidad de voltaje que tiene tu circuito: "))
-        cantidad_de_resistencias_2 = int(input("Ingrese la cantidad de resistencias: "))
-        resistencias_2 = []
+        voltaje = int(input("ingrese la cantidad de voltaje que tiene tu circuito: "))
+        cantidad_de_resistencias = int(input("Ingrese la cantidad de resistencias: "))
+        resistencias = []
         
-        for i in range(cantidad_de_resistencias_2):
-            valor_2 = int(input(f"ingrese el valor de R{i+1}: "))
-            resistencias_2.append(valor_2)
+        for i in range(cantidad_de_resistencias):
+            valor = int(input(f"ingrese el valor de R{i+1}: "))
+            resistencias.append(valor)
 
-        suma_inversos = sum(1 / r for r in resistencias_2) 
-        RT_2 = 1 / suma_inversos
+        suma_inversos = sum(1 / r for r in resistencias) 
+        
+        cantidad = len[resistencias]
+        if cantidad >= 2:
+            RT = 1 / suma_inversos
+        elif cantidad == 1:
+            RT = 1 / resistencias 
        
-        print(f"La resistencia total del circuito es de {RT_2} ohmios")
+        print(f"La resistencia total del circuito es de {RT} ohmios")
     except ValueError:
         print("ingrese un valor en numerico :b")
 
