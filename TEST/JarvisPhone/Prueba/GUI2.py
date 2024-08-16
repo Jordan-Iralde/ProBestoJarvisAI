@@ -19,7 +19,6 @@ from dotenv import load_dotenv
 import random
 from itertools import combinations
 
-
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -30,7 +29,7 @@ VS_CODE_PATH = os.getenv('VS_CODE_PATH', 'code')
 # Conexión a MongoDB Atlas
 client = pymongo.MongoClient("mongodb+srv://JarvisUser:2wssnlZhLTw5WuvF4@jorvisai.lrskk.mongodb.net/")
 db = client["JarvisAI"]
-collection = db["pro"]
+collection = db["prueba"]
 
 # Configuración
 NUM_ITERATIONS = 12
@@ -140,15 +139,16 @@ def fetch_web_content(query):
     session = requests.Session()
     try:
         search_url = f"https://www.google.com/search?q={query}"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
-        response = session.get(search_url, headers=headers, timeout=40)  # Aumenta el timeout
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        response = session.get(search_url, headers=headers, timeout=30)  # Reduce el timeout a 30 segundos
         soup = BeautifulSoup(response.text, 'html.parser')
         results = [result.get_text() for result in soup.find_all('h3')]
         return results
     except requests.RequestException as e:
         logging.error(f"Error al buscar el contenido para '{query}': {e}")
         return []
-
 
 class SearchApp(tk.Tk):
     def __init__(self):
@@ -191,13 +191,21 @@ class SearchApp(tk.Tk):
         else:
             logging.info("Entrenamiento completado.")
 
-
-    def update_graph(self, data):
+    def update_plot(self, data_collected):
+        """Actualiza el gráfico con los datos recopilados."""
         self.ax.clear()
-        self.ax.plot(data)
+        self.ax.set_title("Crecimiento de la IA", color="white")
+        self.ax.set_xlabel("Iteraciones", color="white")
+        self.ax.set_ylabel("Datos Recopilados", color="white")
+        self.ax.plot(range(len(data_collected)), data_collected, 'c-', marker='o')
+        self.ax.grid(True, linestyle='--', alpha=0.6)
+        self.ax.spines['bottom'].set_color('white')
+        self.ax.spines['top'].set_color('white')
+        self.ax.spines['right'].set_color('white')
+        self.ax.spines['left'].set_color('white')
+        self.ax.tick_params(axis='x', colors='white')
+        self.ax.tick_params(axis='y', colors='white')
         self.canvas.draw()
-
-from joblib import load
 
 class App(tk.Tk):
     def __init__(self):
@@ -305,6 +313,7 @@ class App(tk.Tk):
                 else:
                     logging.info(f"No se obtuvo contenido para la consulta '{query}'")
                 time.sleep(1)  # Espacio entre consultas para evitar bloqueos
+        self.save_data_to_mongo(contents)
         return contents
 
     def save_data_to_mongo(self, contents):
@@ -319,7 +328,8 @@ class App(tk.Tk):
         self.ax.set_title("Crecimiento de la IA", color="white")
         self.ax.set_xlabel("Iteraciones", color="white")
         self.ax.set_ylabel("Datos Recopilados", color="white")
-        self.ax.plot(range(len(data_collected)), data_collected, 'c-')
+        self.ax.plot(range(len(data_collected)), data_collected, 'c-', marker='o')
+        self.ax.grid(True, linestyle='--', alpha=0.6)
         self.ax.spines['bottom'].set_color('white')
         self.ax.spines['top'].set_color('white')
         self.ax.spines['right'].set_color('white')
@@ -334,10 +344,6 @@ class App(tk.Tk):
         logging.info("Botón de predicción clicado.")
         # Implementar el código para hacer predicciones aquí
 
-
-
 if __name__ == "__main__":
     app = App()
     app.mainloop()
-    
-
