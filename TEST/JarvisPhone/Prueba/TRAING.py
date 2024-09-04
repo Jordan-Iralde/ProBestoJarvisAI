@@ -12,7 +12,7 @@ import os
 
 # Conectar a MongoDB y obtener datos
 def fetch_data_from_mongodb():
-    client = pymongo.MongoClient("mongodb+srv://JarvisUser:2wssnlZhLTw5WuvF4@jorvisai.lrskk.mongodb.net/")
+    client = pymongo.MongoClient("mongodb+srv://iraldejordan10:r5dcxq5RHNDrxt69@jarviscluster.et2fo.mongodb.net/")
     db = client["JarvisAI"]
     collection = db["web_searches"]
     

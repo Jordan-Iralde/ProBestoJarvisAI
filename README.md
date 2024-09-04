@@ -1,92 +1,74 @@
+📌 Proyecto: IA Autodidacta y Autónoma con Integración Multimodal
+Descripción General
+Este proyecto tiene como objetivo desarrollar un sistema de Inteligencia Artificial completamente autónomo, capaz de aprender y optimizarse sin intervención humana. El sistema combina automatización, reconocimiento facial, clonación de voz, integración con sistemas operativos y optimización del rendimiento de la computadora. Este enfoque se centra en la capacidad de la IA para realizar tareas complejas, aprender de manera continua y adaptarse a nuevos entornos y desafíos.
 
-La idea es la siguiente, se busca crear un programa el cual tenga la capacidad de aprender de manera automatica y autonoma, reforzandose con prompts de ChatGPT.
+🎯 Objetivos del Proyecto
+Automatización y Entrenamiento: Desarrollar un pipeline de entrenamiento automático que optimiza y mejora el rendimiento de la IA mediante consultas automatizadas y refuerzo basado en modelos de lenguaje.
 
-PASOS:
--   Hacer un programa para crear consultas automaticas(Sin necesidad de un usuario) y hacer consultas para mejorar codigos
--   Complementar el programa con un ejecutador automatico, el cual tiene que aprovechar los recursos de cada PC
--   Implementar la IA clonador de voz para interpretar la voz humana, repoducirla en bocinas para contestar respuestas
--   Implementar reconocimiento facial para el acceso y el entrenamiento, reforzar datos de aprendizaje
--   Implementar el codigo en un juego, etc. Buscar optimizar una PC y archivos enteros
+Integración Multimodal: Implementar reconocimiento facial y clonación de voz para facilitar la interacción y entrenamiento del sistema.
 
+Interacción con Sistemas Operativos: Desplegar scripts y procesos que permitan a la IA interactuar y optimizar recursos de la PC de manera autónoma.
 
-Si hacemos esto, podemos hacer una PC muy potente, juegos en poco tiempo, programas en poco tiempo, etc.
+Expansión y Escalabilidad: Adaptar la IA para integrarse en diversos sistemas operativos y dispositivos, asegurando una fácil implementación y escalabilidad.
 
+Autoaprendizaje y Adaptabilidad: Permitir que la IA se autoentrene y se ajuste a contextos variables en tiempo real, con capacidades avanzadas como análisis de sentimientos y comprensión del lenguaje natural.
 
+🚀 Fases del Proyecto
+Fase 1: Automatización, Entrenamiento e Interfaz
+Objetivo: Configurar la ejecución automática de scripts para el entrenamiento de la IA y la eliminación periódica de datos en la base de datos.
+Ejecución: Secuencia de scripts desde main.py hasta auto_training.py para un ciclo de entrenamiento completo.
+Fase 2: Implementación de Clonador de Voces
+Objetivo: Desarrollar la capacidad de la IA para imitar voces humanas y responder de manera auditiva.
+Fase 3: Implementación de Reconocimiento Facial
+Objetivo: Utilizar reconocimiento facial para acceso y refuerzo del entrenamiento.
+Fase 4: Integración en Sistemas Operativos
+Objetivo: Asegurar que la IA pueda operar en múltiples sistemas operativos y manejar grandes volúmenes de datos de manera eficiente.
+Fase 5-10: Escalabilidad, Adaptabilidad y Futuro
+Objetivo: Desde la capacidad de realizar tareas básicas hasta un sistema de IA completamente autónomo y avanzado, con autoaprendizaje continuo y optimización sin intervención humana.
+🛠️ Instalación y Configuración
+Para instalar todas las dependencias necesarias, usa el siguiente script de Python:
 
-FASE 1
-Automatizacion, entrenamiento e Interfaz
+python
+Copy code
+import subprocess
 
-Orden de ejecucion
+# Lista de dependencias
+dependencies = [
+    "tk", "ttk", "filedialog", "messagebox", "threading", "time", "matplotlib", 
+    "concurrent.futures", "requests", "bs4", "pymongo", "collections", "json", 
+    "os", "subprocess", "sys", "pathlib", "logging", "dotenv", "random", "itertools", 
+    "platform", "apscheduler", "numpy", "pandas", "joblib", "sklearn"
+]
 
-1- main.py
-2- train.py
-3- preprocess.py
-4- model.py
-5- progress.py
-6- loadm_model.py
-7- predictions.py
-8- auto_training.py
+# Función para instalar dependencias
+def install_dependencies(deps):
+    for dep in deps:
+        try:
+            print(f"Instalando {dep}...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", dep])
+        except subprocess.CalledProcessError as e:
+            print(f"Error instalando {dep}: {e}")
 
-    Próximos Pasos
-    Mejorar el Proceso de Búsqueda de Información:
+if __name__ == "__main__":
+    install_dependencies(dependencies)
+Ejecuta este script desde tu terminal para instalar automáticamente todas las dependencias necesarias.
 
-    Multiplicar la cantidad de búsquedas simultáneas.
-    Asegurar la correcta recopilación de datos web.
-    Implementar técnicas avanzadas de scraping y análisis de datos.
-    Optimización del Proceso de Entrenamiento:
+🖥️ Uso del Proyecto
+Ejecución Principal: Comienza ejecutando main.py para iniciar la secuencia de automatización y entrenamiento.
+Visualización y Monitoreo: Usa la interfaz gráfica para seguir el progreso y realizar ajustes en tiempo real.
+Optimización y Personalización: Adapta los parámetros y configuraciones según los requerimientos específicos de cada entorno.
+📈 Mejora Continua y Futuro del Proyecto
+Este proyecto está diseñado para evolucionar y mejorar continuamente, con un enfoque en la integración de nuevas tecnologías y la adaptación a diferentes plataformas. Los próximos pasos incluyen la expansión de capacidades avanzadas como la toma de decisiones autónomas y la colaboración en entornos distribuidos.
 
-    Revisar y optimizar el código de entrenamiento.
-    Implementar técnicas de paralelización y uso eficiente de recursos (CPU, GPU).
-    Añadir manejo de errores más robusto y logging detallado.
-    Implementación de una UI Avanzada:
+📚 Documentación y Recursos Adicionales
+Para más detalles, consulta la documentación completa.
 
-    Crear una sección para visualizar el crecimiento y aprendizaje de la IA.
-    Mostrar datos relevantes y gráficos interactivos.
-    Mantener una estética minimalista y funcional.
-    Integración con el Sistema Operativo:
+📬 Contribuciones
+¡Contribuciones, ideas y mejoras son bienvenidas! Si tienes alguna sugerencia o encuentras algún problema, no dudes en abrir un issue o enviar un pull request.
 
-    Desarrollar scripts y procesos para permitir que la IA interactúe con el sistema operativo.
-    Implementar funcionalidades de optimización del sistema por parte de la IA.
-    Asegurar la seguridad y estabilidad del sistema operativo durante estas operaciones.
-    Pruebas y Validación:
+🚧 Estado Actual
+El proyecto está en fase de desarrollo activo. Las funcionalidades básicas están implementadas, y se está trabajando en la integración de capacidades avanzadas. ¡Mantente al tanto para más actualizaciones!
 
-    Realizar pruebas exhaustivas para asegurar que el sistema funciona como se espera.
-    Validar que la IA puede aprender de manera autónoma y eficiente.
-    Automatización Completa:
+🌐 Licencia
+Este proyecto está licenciado bajo la Licencia MIT.
 
-    Configurar el sistema para que se ejecute de manera autónoma.
-    Implementar mecanismos de auto-mejora y actualización del código.
-    Asegurar que el sistema pueda tomar decisiones y optimizarse sin intervención humana.
-
-FASE 2 Implementacion de clonador de voces, en esta fase la IA aprende por su cuenta
-
-Fase 3 Implementacion de reconocimiento facial, en esta fase la IA reconoce rostros y se entrena con rostros
-
-Fase 4 La IA debe ser capaz de integrarse en cualquier sistema operativo y desplegarse facilmente, siendo que se entrena en diferentes computadoras debe tener un lugar para almacenar muchos datos, por lo que debe reducir el tama;o de los mismos
-
-Fase 5 La IA puede ocupar una computadora con tranquilidad y hacer actividades basicas, ademas de conocer sobre amplios aspectos y profundizar en el desarrollo y optimizacion
-
-Fase 6: [Pendiente de Definir]
-Objetivo Posible: Desarrollo de habilidades avanzadas de la IA, como el análisis de sentimientos o el entendimiento del lenguaje natural.
-Tareas Posibles: Implementar módulos para la comprensión de texto y la interacción avanzada con usuarios.
-
-Fase 7: [Pendiente de Definir]
-
-Objetivo Posible: Integración de capacidades de toma de decisiones autónomas y adaptabilidad en tiempo real.
-Tareas Posibles: Implementar algoritmos de toma de decisiones basados en el contexto y adaptar el comportamiento de la IA a nuevas situaciones.
-Fase 8: [Pendiente de Definir]
-
-Objetivo Posible: Optimización del rendimiento y la eficiencia de la IA en múltiples plataformas y dispositivos.
-Tareas Posibles: Realizar pruebas en diferentes entornos, optimizar el uso de recursos y mejorar la velocidad y precisión de la IA.
-Fase 9: [Pendiente de Definir]
-
-Objetivo Posible: Escalabilidad y capacidad de colaboración en entornos distribuidos.
-Tareas Posibles: Desarrollar sistemas para la cooperación entre múltiples instancias de IA, manejar grandes volúmenes de datos y asegurar la interoperabilidad.
-Fase 10: Final y Futuro Dentro de Muchos Años
-
-Objetivo Posible: Lograr un sistema de IA completamente autónomo, altamente avanzado y capaz de realizar tareas complejas con mínima intervención humana.
-Tareas Posibles: Implementar funcionalidades avanzadas como el autoaprendizaje continuo, la autooptimización y la integración con sistemas de inteligencia global.
-
-
-
-https://docs.google.com/document/d/1h3JylEJwq64bt_vFMJj3KFBxwdMB1X_3Da76SyWB0NE/edit?usp=sharing

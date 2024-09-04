@@ -27,7 +27,7 @@ load_dotenv()
 VS_CODE_PATH = os.getenv('VS_CODE_PATH', 'code')
 
 # Conexión a MongoDB Atlas
-client = pymongo.MongoClient("mongodb+srv://JarvisUser:2wssnlZhLTw5WuvF4@jorvisai.lrskk.mongodb.net/")
+client = pymongo.MongoClient("mongodb+srv://iraldejordan10:r5dcxq5RHNDrxt69@jarviscluster.et2fo.mongodb.net/")
 db = client["JarvisAI"]
 collection = db["prueba"]
 
