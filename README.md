@@ -27,31 +27,7 @@ Fase 5-10: Escalabilidad, Adaptabilidad y Futuro
 Objetivo: Desde la capacidad de realizar tareas básicas hasta un sistema de IA completamente autónomo y avanzado, con autoaprendizaje continuo y optimización sin intervención humana.
 🛠️ Instalación y Configuración
 Para instalar todas las dependencias necesarias, usa el siguiente script de Python:
-
-python
-Copy code
-import subprocess
-
-# Lista de dependencias
-dependencies = [
-    "tk", "ttk", "filedialog", "messagebox", "threading", "time", "matplotlib", 
-    "concurrent.futures", "requests", "bs4", "pymongo", "collections", "json", 
-    "os", "subprocess", "sys", "pathlib", "logging", "dotenv", "random", "itertools", 
-    "platform", "apscheduler", "numpy", "pandas", "joblib", "sklearn"
-]
-
-# Función para instalar dependencias
-def install_dependencies(deps):
-    for dep in deps:
-        try:
-            print(f"Instalando {dep}...")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", dep])
-        except subprocess.CalledProcessError as e:
-            print(f"Error instalando {dep}: {e}")
-
-if __name__ == "__main__":
-    install_dependencies(dependencies)
-Ejecuta este script desde tu terminal para instalar automáticamente todas las dependencias necesarias.
+- InstalarDependencias.py
 
 🖥️ Uso del Proyecto
 Ejecución Principal: Comienza ejecutando main.py para iniciar la secuencia de automatización y entrenamiento.
