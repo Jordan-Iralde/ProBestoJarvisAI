@@ -5,7 +5,7 @@ dependencies = [
     "tk", "ttk", "filedialog", "messagebox", "threading", "time", "matplotlib", 
     "concurrent.futures", "requests", "bs4", "pymongo", "collections", "json", 
     "os", "subprocess", "sys", "pathlib", "logging", "dotenv", "random", "itertools", 
-    "platform", "apscheduler", "numpy", "pandas", "joblib", "sklearn"
+    "platform", "apscheduler", "numpy", "pandas", "joblib", "sklearn", "python-dotenv"
 ]
 
 # Función para instalar dependencias
