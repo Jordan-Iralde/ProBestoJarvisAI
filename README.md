@@ -14,17 +14,19 @@ Expansión y Escalabilidad: Adaptar la IA para integrarse en diversos sistemas o
 Autoaprendizaje y Adaptabilidad: Permitir que la IA se autoentrene y se ajuste a contextos variables en tiempo real, con capacidades avanzadas como análisis de sentimientos y comprensión del lenguaje natural.
 
 🚀 Fases del Proyecto
-Fase 1: Automatización, Entrenamiento e Interfaz
+<br>
+Fase 1: Automatización, Entrenamiento e Interfaz, Busquedas
 Objetivo: Configurar la ejecución automática de scripts para el entrenamiento de la IA y la eliminación periódica de datos en la base de datos.
-Ejecución: Secuencia de scripts desde main.py hasta auto_training.py para un ciclo de entrenamiento completo.
-Fase 2: Implementación de Clonador de Voces
-Objetivo: Desarrollar la capacidad de la IA para imitar voces humanas y responder de manera auditiva.
-Fase 3: Implementación de Reconocimiento Facial
-Objetivo: Utilizar reconocimiento facial para acceso y refuerzo del entrenamiento.
-Fase 4: Integración en Sistemas Operativos
-Objetivo: Asegurar que la IA pueda operar en múltiples sistemas operativos y manejar grandes volúmenes de datos de manera eficiente.
-Fase 5-10: Escalabilidad, Adaptabilidad y Futuro
-Objetivo: Desde la capacidad de realizar tareas básicas hasta un sistema de IA completamente autónomo y avanzado, con autoaprendizaje continuo y optimización sin intervención humana.
+Es capaz de realizar busquedas en Internet, Guardar datos de un Keylogger y las busquedas para su proximo entrenamiento en una Base de Datos no Relacional con MongoDB, 
+<br>
+Fase 2: Entrenamiento de Modelos
+Objetivo: El entrenamiento del modelo, con la base de datos no relacional, que se mejora automaticamente dia a dia.
+Este modelo se divide en dos partes, JAR y VIS, siendo que JAR se orienta a hablar naturalmente, Traducir en Tiempo real y aprender del keylogger, reconocer rostros y dar ideas.
+El modelo VIS se basa en la generacion de codigo y entrenamiento general, y reforzado, mejora automaticamente
+<br>
+Fase 3: Optimizacion de Codigos
+Objetivo: Esta fase se centra en optimizar codigos, sistemas operativos, entendimiento general, se integra a juegos para el aprendizaje y entrenamiento y ser capaz de resolver cualquier problema
+
 🛠️ Instalación y Configuración
 Para instalar todas las dependencias necesarias, usa el siguiente script de Python:
 - InstalarDependencias.py
