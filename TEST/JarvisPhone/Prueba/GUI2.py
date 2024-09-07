@@ -8,7 +8,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 from bs4 import BeautifulSoup
 import pymongo
-from collections import OrderedDict
 import json
 import os
 import subprocess
@@ -27,21 +26,35 @@ load_dotenv()
 VS_CODE_PATH = os.getenv('VS_CODE_PATH', 'code')
 
 # Conexión a MongoDB Atlas
-client = pymongo.MongoClient("mongodb+srv://iraldejordan10:r5dcxq5RHNDrxt69@jarviscluster.et2fo.mongodb.net/")
-db = client["JarvisAI"]
+def get_mongo_client():
+    """Devuelve un cliente de conexión a MongoDB."""
+    try:
+        client = pymongo.MongoClient("mongodb+srv://iraldejordan10:r5dcxq5RHNDrxt69@jarviscluster.et2fo.mongodb.net/")
+        logging.info("Conectado a MongoDB Atlas.")
+        return client
+    except pymongo.errors.ConnectionError as e:
+        logging.error(f"Error de conexión a MongoDB: {e}")
+        raise
+
+mongo_client = get_mongo_client()
+db = mongo_client["JarvisAI"]
 collection = db["prueba"]
 
 # Configuración
 NUM_ITERATIONS = 12
 SLEEP_INTERVAL = 5
-WORDS_FILE = 'spanish_words.txt'  # Archivo con palabras en español
-SEARCH_QUERIES = []  # Se llenará con oraciones generadas
+WORDS_FILE = 'spanish_words.txt'
+SEARCH_QUERIES = []
 
 def load_spanish_words(file_path):
     """Carga palabras en español desde un archivo."""
-    with open(file_path, 'r', encoding='utf-8') as file:
-        words = file.read().splitlines()
-    return words
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            words = file.read().splitlines()
+        return words
+    except FileNotFoundError:
+        logging.error("El archivo de palabras en español no se encontró.")
+        return []
 
 def create_file(file_path: Path, content: str) -> str:
     """Crea un archivo con el contenido especificado."""
@@ -58,15 +71,19 @@ def create_structure(base_dir: Path, items: list) -> list:
     log = []
     for item in items:
         path = base_dir / item['path']
-        if item['type'] == 'directory':
-            path.mkdir(parents=True, exist_ok=True)
-            log.append(f"Directorio creado: {path.resolve()}")
-        elif item['type'] == 'file':
-            path.parent.mkdir(parents=True, exist_ok=True)
-            content = item.get('content', f"# Contenido inicial para {path.name}")
-            log.append(create_file(path, content))
-        else:
-            log.append(f"Error: Tipo desconocido para {path}")
+        try:
+            if item['type'] == 'directory':
+                path.mkdir(parents=True, exist_ok=True)
+                log.append(f"Directorio creado: {path.resolve()}")
+            elif item['type'] == 'file':
+                path.parent.mkdir(parents=True, exist_ok=True)
+                content = item.get('content', f"# Contenido inicial para {path.name}")
+                log.append(create_file(path, content))
+            else:
+                raise ValueError(f"Tipo desconocido para {path}")
+        except Exception as e:
+            logging.error(f"Error al crear {path}: {e}")
+            log.append(f"Error: {e}")
     return log
 
 def load_config(file_path: Path) -> list:
@@ -142,7 +159,7 @@ def fetch_web_content(query):
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
-        response = session.get(search_url, headers=headers, timeout=30)  # Reduce el timeout a 30 segundos
+        response = session.get(search_url, headers=headers, timeout=30)
         soup = BeautifulSoup(response.text, 'html.parser')
         results = [result.get_text() for result in soup.find_all('h3')]
         return results
@@ -158,192 +175,73 @@ class SearchApp(tk.Tk):
 
         # Botón para iniciar el entrenamiento
         self.train_button = tk.Button(self, text='Iniciar Entrenamiento', command=self.start_training)
-        self.train_button.pack(pady=20)
+        self.train_button.pack(pady=10)
 
-        # Canvas para gráficos
-        self.figure = plt.Figure(figsize=(6, 4), dpi=100)
-        self.ax = self.figure.add_subplot(111)
-        self.canvas = FigureCanvasTkAgg(self.figure, self)
-        self.canvas.get_tk_widget().pack(pady=20)
+        # Botón para mostrar gráficos
+        self.show_graph_button = tk.Button(self, text='Mostrar Gráfico', command=self.show_graph)
+        self.show_graph_button.pack(pady=10)
+
+        # Botón para abrir Visual Studio Code
+        self.open_vscode_button = tk.Button(self, text='Abrir Visual Studio Code', command=lambda: open_vscode(Path(__file__).parent))
+        self.open_vscode_button.pack(pady=10)
+
+        # Botón para abrir el explorador de archivos
+        self.open_explorer_button = tk.Button(self, text='Abrir Explorador de Archivos', command=lambda: open_file_explorer(Path(__file__).parent))
+        self.open_explorer_button.pack(pady=10)
 
     def start_training(self):
-        self.train_button.config(state=tk.DISABLED)
-        threading.Thread(target=self.run_training, daemon=True).start()
+        self.train_button.config(state='disabled')
+        words = load_spanish_words(WORDS_FILE)
+        if not words:
+            messagebox.showerror("Error", "No se pudieron cargar las palabras en español.")
+            self.train_button.config(state='normal')
+            return
 
-    def run_training(self):
-        """Entrenamiento en segundo plano."""
-        data_collected = []
-        iteration_count = 0
-        while iteration_count < NUM_ITERATIONS and self.search_queries:
-            queries_to_process = random.sample(self.search_queries, min(len(self.search_queries), 10))
-            self.search_queries = [q for q in self.search_queries if q not in self.completed_queries]
-            if not queries_to_process:
-                logging.info("No hay más consultas por realizar.")
-                break
-            contents = self.fetch_and_display_content(queries_to_process)
-            if contents:
-                data_collected.extend(contents)
-                self.update_plot(data_collected)
-            iteration_count += 1
-            time.sleep(SLEEP_INTERVAL)
-        if not self.search_queries:
-            logging.info("No hay más consultas disponibles.")
-        else:
-            logging.info("Entrenamiento completado.")
+        SEARCH_QUERIES.extend(generate_search_queries(words))
+        self.progress = ttk.Progressbar(self, orient='horizontal', length=200, mode='determinate')
+        self.progress.pack(pady=20)
 
-    def update_plot(self, data_collected):
-        """Actualiza el gráfico con los datos recopilados."""
-        self.ax.clear()
-        self.ax.set_title("Crecimiento de la IA", color="white")
-        self.ax.set_xlabel("Iteraciones", color="white")
-        self.ax.set_ylabel("Datos Recopilados", color="white")
-        self.ax.plot(range(len(data_collected)), data_collected, 'c-', marker='o')
-        self.ax.grid(True, linestyle='--', alpha=0.6)
-        self.ax.spines['bottom'].set_color('white')
-        self.ax.spines['top'].set_color('white')
-        self.ax.spines['right'].set_color('white')
-        self.ax.spines['left'].set_color('white')
-        self.ax.tick_params(axis='x', colors='white')
-        self.ax.tick_params(axis='y', colors='white')
-        self.canvas.draw()
+        # Uso de ThreadPoolExecutor para manejar solicitudes web en paralelo
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(fetch_web_content, query): query for query in SEARCH_QUERIES[:NUM_ITERATIONS]}
 
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("JarvisPhone")
-        self.geometry("1200x900")
-        self.configure(bg="#1E1E1E")
-        self.words = load_spanish_words(WORDS_FILE)
-        self.search_queries = generate_search_queries(self.words)
-        self.completed_queries = set()
-        self.create_widgets()  # Llama al método local
-        self.start_training()
+            for future in as_completed(futures):
+                query = futures[future]
+                try:
+                    results = future.result()
+                    if results:
+                        # Insertar en MongoDB
+                        collection.insert_one({'query': query, 'results': results})
+                        logging.info(f"Resultados para '{query}' guardados en MongoDB.")
+                    else:
+                        logging.warning(f"No se encontraron resultados para '{query}'.")
+                except Exception as exc:
+                    logging.error(f"Generó una excepción: {exc}")
 
-    def create_widgets(self):
-        """Crea y organiza los widgets en la ventana principal."""
-        # Mejora el estilo visual
-        self.style = ttk.Style()
-        self.style.configure('TButton', font=('Helvetica', 12), padding=10)
-        self.style.configure('TLabel', background='#1E1E1E', foreground='white', font=('Helvetica', 12))
+                self.progress['value'] += 100 / NUM_ITERATIONS
+                self.update_idletasks()
 
-        self.header_frame = tk.Frame(self, bg="#1E1E1E")
-        self.header_frame.pack(pady=10)
+        self.train_button.config(state='normal')
 
-        self.progress_label = ttk.Label(self.header_frame, text="Progreso de Entrenamiento")
-        self.progress_label.pack(side=tk.LEFT, padx=10)
-
-        self.progress_bar = ttk.Progressbar(self.header_frame, orient="horizontal", length=500, mode="determinate")
-        self.progress_bar.pack(side=tk.LEFT, padx=10)
-
-        self.content_frame = tk.Frame(self, bg="#1E1E1E")
-        self.content_frame.pack(pady=10)
-
-        self.content_label = ttk.Label(self.content_frame, text="Contenidos Recuperados")
-        self.content_label.pack(pady=10)
-
-        self.content_text = tk.Text(self.content_frame, wrap=tk.WORD, height=15, width=100)
-        self.content_text.pack(padx=10)
-
-        self.button_frame = tk.Frame(self, bg="#1E1E1E")
-        self.button_frame.pack(pady=10)
-
-        self.create_file_button = ttk.Button(self.button_frame, text="Crear Estructura de Archivos", command=self.open_file_creator)
-        self.create_file_button.pack(side=tk.LEFT, padx=10)
-
-        self.open_vscode_button = ttk.Button(self.button_frame, text="Abrir VS Code", command=lambda: open_vscode(Path(__file__).parent))
-        self.open_vscode_button.pack(side=tk.LEFT, padx=10)
-
-        self.open_explorer_button = ttk.Button(self.button_frame, text="Abrir Explorador de Archivos", command=lambda: open_file_explorer(Path(__file__).parent))
-        self.open_explorer_button.pack(side=tk.LEFT, padx=10)
-
-        self.figure, self.ax = plt.subplots(figsize=(10, 5))
-        self.ax.set_facecolor('#1E1E1E')
-        self.canvas = FigureCanvasTkAgg(self.figure, master=self)
-        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-        # Botón para hacer predicciones
-        self.predict_button = ttk.Button(self.button_frame, text="Hacer Predicciones", command=self.on_predict_button_click)
-        self.predict_button.pack(side=tk.LEFT, padx=10)
-
-    def open_file_creator(self):
-        """Abre un diálogo para seleccionar el archivo de configuración y crear la estructura de archivos."""
+    def show_graph(self):
+        """Muestra un gráfico con datos recopilados."""
         try:
-            file_path = filedialog.askopenfilename(title="Seleccionar archivo de configuración", filetypes=[("Archivos JSON", "*.json")])
-            if file_path:
-                items = load_config(Path(file_path))
-                base_dir = Path(file_path).parent
-                log = create_structure(base_dir, items)
-                messagebox.showinfo("Estructura Creada", "\n".join(log))
-        except RuntimeError as e:
-            messagebox.showerror("Error", str(e))
+            data = list(collection.find())
+            queries = [item['query'] for item in data]
+            results_count = [len(item['results']) for item in data]
 
-    def start_training(self):
-        """Inicia el entrenamiento en un hilo separado."""
-        self.training_thread = threading.Thread(target=self.run_training)
-        self.training_thread.start()
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.barh(queries, results_count, color='skyblue')
+            ax.set_xlabel('Número de Resultados')
+            ax.set_title('Resultados por Consulta')
 
-    def run_training(self):
-        """Entrenamiento en segundo plano."""
-        data_collected = []
-        for _ in range(NUM_ITERATIONS):
-            if len(self.search_queries) == 0:
-                logging.info("No hay más consultas para realizar.")
-                break
-            queries_to_process = random.sample(self.search_queries, min(len(self.search_queries), 10))
-            self.search_queries = [q for q in self.search_queries if q not in self.completed_queries]
-            if len(queries_to_process) == 0:
-                logging.info("No hay más consultas por realizar.")
-                break
-            contents = self.fetch_and_display_content(queries_to_process)  # Llamar correctamente el método
-            if contents:
-                data_collected.extend(contents)
-                self.update_plot(data_collected)
-            time.sleep(SLEEP_INTERVAL)
+            canvas = FigureCanvasTkAgg(fig, master=self)
+            canvas.draw()
+            canvas.get_tk_widget().pack()
+        except Exception as e:
+            logging.error(f"Error al mostrar el gráfico: {e}")
+            messagebox.showerror("Error", f"Error al mostrar el gráfico: {e}")
 
-    def fetch_and_display_content(self, queries):
-        """Recupera y muestra el contenido web."""
-        contents = []
-        with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(fetch_web_content, query) for query in queries]
-            for query, future in zip(queries, as_completed(futures)):
-                content = future.result()
-                if content:
-                    contents.extend(content)
-                    logging.info(f"Contenido para consulta '{query}' recuperado.")
-                else:
-                    logging.info(f"No se obtuvo contenido para la consulta '{query}'")
-                time.sleep(1)  # Espacio entre consultas para evitar bloqueos
-        self.save_data_to_mongo(contents)
-        return contents
-
-    def save_data_to_mongo(self, contents):
-        """Guarda los datos en MongoDB con etiquetas."""
-        for content in contents:
-            collection.insert_one({"content": content, "type": "search_result"})
-        logging.info(f"Datos guardados en MongoDB: {len(contents)} entradas.")
-
-    def update_plot(self, data_collected):
-        """Actualiza el gráfico con los datos recopilados."""
-        self.ax.clear()
-        self.ax.set_title("Crecimiento de la IA", color="white")
-        self.ax.set_xlabel("Iteraciones", color="white")
-        self.ax.set_ylabel("Datos Recopilados", color="white")
-        self.ax.plot(range(len(data_collected)), data_collected, 'c-', marker='o')
-        self.ax.grid(True, linestyle='--', alpha=0.6)
-        self.ax.spines['bottom'].set_color('white')
-        self.ax.spines['top'].set_color('white')
-        self.ax.spines['right'].set_color('white')
-        self.ax.spines['left'].set_color('white')
-        self.ax.tick_params(axis='x', colors='white')
-        self.ax.tick_params(axis='y', colors='white')
-        self.canvas.draw()
-
-    def on_predict_button_click(self):
-        """Método para manejar el clic en el botón de predicción."""
-        # Aquí puedes implementar la lógica para hacer predicciones
-        logging.info("Botón de predicción clicado.")
-        # Implementar el código para hacer predicciones aquí
-
-if __name__ == "__main__":
-    app = App()
+if __name__ == '__main__':
+    app = SearchApp()
     app.mainloop()
