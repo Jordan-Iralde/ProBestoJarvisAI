@@ -1,11 +1,13 @@
 import subprocess
+import sys
 
 # Lista de dependencias
 dependencies = [
     "tk", "ttk", "filedialog", "messagebox", "threading", "time", "matplotlib", 
     "concurrent.futures", "requests", "bs4", "pymongo", "collections", "json", 
     "os", "subprocess", "sys", "pathlib", "logging", "dotenv", "random", "itertools", 
-    "platform", "apscheduler", "numpy", "pandas", "joblib", "sklearn", "python-dotenv"
+    "platform", "apscheduler", "numpy", "pandas", "joblib", "sklearn", "python-dotenv",
+    "scikit-learn", "schedule"
 ]
 
 # Función para instalar dependencias
