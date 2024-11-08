@@ -1,9 +1,6 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, messagebox
 import threading
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 from bs4 import BeautifulSoup
 import pymongo
@@ -14,9 +11,9 @@ import sys
 from pathlib import Path
 import logging
 from dotenv import load_dotenv
-from sklearn.feature_extraction.text import TfidfVectorizer
 import random
 from itertools import combinations
+import time
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -40,20 +37,28 @@ mongo_client = get_mongo_client()
 db = mongo_client["JarvisAI"]
 collection = db["prueba"]
 
-# Configuración
-NUM_ITERATIONS = 12
+# Archivo de palabras
 WORDS_FILE = 'spanish_words.txt'
-SEARCH_QUERIES = []
 
 def load_spanish_words(file_path):
-    """Carga palabras en español desde un archivo."""
+    """Carga palabras desde un archivo y las devuelve como lista."""
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             words = file.read().splitlines()
         return words
     except FileNotFoundError:
-        logging.error("El archivo de palabras en español no se encontró.")
+        logging.error("El archivo de palabras no se encontró.")
         return []
+
+def save_new_words(new_words):
+    """Guarda nuevas palabras en el archivo sin duplicar."""
+    try:
+        with open(WORDS_FILE, 'a', encoding='utf-8') as file:
+            for word in new_words:
+                file.write(word + '\n')
+        logging.info("Nuevas palabras añadidas a spanish_words.txt")
+    except Exception as e:
+        logging.error(f"Error al guardar palabras en el archivo: {e}")
 
 def generate_search_queries(words, max_length=5):
     """Genera combinaciones de palabras para formar oraciones."""
@@ -61,17 +66,6 @@ def generate_search_queries(words, max_length=5):
     for length in range(1, max_length + 1):
         queries.extend([' '.join(comb) for comb in combinations(words, length)])
     return queries
-
-def extract_keywords(content):
-    """Extrae palabras clave utilizando TF-IDF y convierte el resultado a una lista para evitar problemas de codificación."""
-    vectorizer = TfidfVectorizer(max_df=0.8)
-    tfidf_matrix = vectorizer.fit_transform(content)
-    features = vectorizer.get_feature_names_out()
-
-    # Convertimos a lista antes de devolver
-    return features[:10].tolist()  # Devuelve las 10 principales palabras clave como lista
-
-
 
 def fetch_web_content(query):
     """Realiza una búsqueda en la web y devuelve el contenido."""
@@ -81,7 +75,6 @@ def fetch_web_content(query):
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
-        
         response = session.get(search_url, headers=headers, timeout=30)
         soup = BeautifulSoup(response.text, 'html.parser')
         results = [result.get_text() for result in soup.find_all('h3')]
@@ -90,53 +83,21 @@ def fetch_web_content(query):
         logging.error(f"Error al buscar el contenido para '{query}': {e}")
         return []
 
-def create_file(file_path: Path, content: str) -> str:
-    """Crea un archivo con el contenido especificado."""
-    try:
-        file_path.write_text(content)
-        logging.info(f"Archivo creado: {file_path.resolve()}")
-        return f"Archivo creado: {file_path.resolve()}"
-    except Exception as e:
-        logging.error(f"Error al crear el archivo {file_path}: {e}")
-        return f"Error al crear el archivo {file_path}: {e}"
+def extract_keywords(content):
+    """Extrae palabras clave utilizando TF-IDF y convierte el resultado a una lista para evitar problemas de codificación."""
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    vectorizer = TfidfVectorizer(max_df=0.8, stop_words='english')
+    tfidf_matrix = vectorizer.fit_transform(content)
+    features = vectorizer.get_feature_names_out()
+    return features[:10].tolist()  # Devuelve las 10 principales palabras clave como lista
 
-def open_vscode(directory: Path):
-    """Abre Visual Studio Code en el directorio especificado."""
-    vscode_command = [VS_CODE_PATH, str(directory)]
-    if sys.platform == "win32":
-        vscode_command = [r'C:\Program Files\Microsoft VS Code\Code.exe', str(directory)]
-
-    if check_vscode_installed():
-        try:
-            subprocess.run(vscode_command, check=True)
-            logging.info(f"Visual Studio Code abierto en {directory.resolve()}.")
-        except subprocess.CalledProcessError as e:
-            logging.error(f"Error al abrir Visual Studio Code: {e}")
-            messagebox.showerror("Error", f"No se pudo abrir Visual Studio Code: {e}")
-    else:
-        messagebox.showwarning("Advertencia", "Visual Studio Code no está instalado.")
-
-def open_file_explorer(directory: Path):
-    """Abre el explorador de archivos en el directorio especificado."""
-    try:
-        if sys.platform == "win32":
-            os.startfile(directory)
-        elif sys.platform == "darwin":
-            os.system(f"open {directory}")
-        else:
-            os.system(f"xdg-open {directory}")
-        logging.info(f"Explorador de archivos abierto en {directory.resolve()}.")
-    except Exception as e:
-        logging.error(f"No se pudo abrir el explorador de archivos: {e}")
-        messagebox.showerror("Error", f"No se pudo abrir el explorador de archivos: {e}")
-
-def check_vscode_installed() -> bool:
-    """Verifica si Visual Studio Code está instalado y accesible en la línea de comandos."""
-    try:
-        subprocess.run([VS_CODE_PATH, "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        return True
-    except FileNotFoundError:
-        return False
+def update_keywords_in_mongo(new_keywords):
+    """Actualiza MongoDB con nuevas palabras clave y guarda en el archivo."""
+    for keyword in new_keywords:
+        if not collection.find_one({'keywords': keyword}):
+            collection.insert_one({'keywords': keyword})
+            logging.info(f"Palabra clave '{keyword}' añadida a MongoDB.")
+    save_new_words(new_keywords)
 
 class SearchApp(tk.Tk):
     def __init__(self):
@@ -152,69 +113,25 @@ class SearchApp(tk.Tk):
         self.show_graph_button = tk.Button(self, text='Mostrar Gráfico', command=self.show_graph)
         self.show_graph_button.pack(pady=10)
 
-        # Botón para abrir Visual Studio Code
-        self.open_vscode_button = tk.Button(self, text='Abrir Visual Studio Code', command=lambda: open_vscode(Path(__file__).parent))
-        self.open_vscode_button.pack(pady=10)
-
-        # Botón para abrir el explorador de archivos
-        self.open_explorer_button = tk.Button(self, text='Abrir Explorador de Archivos', command=lambda: open_file_explorer(Path(__file__).parent))
-        self.open_explorer_button.pack(pady=10)
-
     def start_training(self):
         self.train_button.config(state='disabled')
+        threading.Thread(target=self.run_infinite_search, daemon=True).start()
+
+    def run_infinite_search(self):
+        """Búsqueda continua que extrae, guarda y actualiza palabras clave indefinidamente."""
         words = load_spanish_words(WORDS_FILE)
-        if not words:
-            messagebox.showerror("Error", "No se pudieron cargar las palabras en español.")
-            self.train_button.config(state='normal')
-            return
-
-        SEARCH_QUERIES.extend(generate_search_queries(words))
-        self.progress = ttk.Progressbar(self, orient='horizontal', length=200, mode='determinate')
-        self.progress.pack(pady=20)
-
-        # Uso de ThreadPoolExecutor para manejar solicitudes web en paralelo
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(fetch_web_content, query): query for query in SEARCH_QUERIES[:NUM_ITERATIONS]}
-
-            for future in as_completed(futures):
-                query = futures[future]
-                try:
-                    results = future.result()
-                    if results:
-                        # Inserta resultados en MongoDB con palabras clave extraídas
-                        keywords = extract_keywords(results)
-                        collection.insert_one({'query': query, 'results': results, 'keywords': keywords})
-                        logging.info(f"Resultados para '{query}' guardados en MongoDB.")
-                    else:
-                        logging.warning(f"No se encontraron resultados para '{query}'.")
-                except Exception as exc:
-                    logging.error(f"Generó una excepción: {exc}")
-
-                self.progress['value'] += 100 / NUM_ITERATIONS
-                self.update_idletasks()
-
-        self.train_button.config(state='normal')
+        while True:
+            queries = generate_search_queries(words)
+            for query in queries:
+                results = fetch_web_content(query)
+                if results:
+                    new_keywords = extract_keywords(results)
+                    update_keywords_in_mongo(new_keywords)
+            time.sleep(10)  # Ajusta el intervalo de búsqueda según necesidad
 
     def show_graph(self):
-        """Muestra un gráfico con datos recopilados."""
-        try:
-            data = list(collection.find())
-            queries = [item['query'] for item in data]
-            results_count = [len(item['results']) for item in data]
-
-            fig, ax = plt.subplots()
-            ax.bar(queries, results_count)
-            ax.set_xlabel('Consultas')
-            ax.set_ylabel('Número de Resultados')
-            ax.set_title('Resultados de Búsqueda por Consulta')
-            plt.xticks(rotation=90)
-
-            canvas = FigureCanvasTkAgg(fig, master=self)
-            canvas.draw()
-            canvas.get_tk_widget().pack()
-        except Exception as e:
-            logging.error(f"Error al mostrar el gráfico: {e}")
-            messagebox.showerror("Error", f"No se pudo mostrar el gráfico: {e}")
+        """Muestra un gráfico con datos recopilados (este método se puede personalizar según los datos)."""
+        pass
 
 if __name__ == '__main__':
     app = SearchApp()
