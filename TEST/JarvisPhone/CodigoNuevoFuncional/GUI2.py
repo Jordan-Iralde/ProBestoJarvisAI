@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import threading
-import time
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -15,6 +14,7 @@ import sys
 from pathlib import Path
 import logging
 from dotenv import load_dotenv
+from sklearn.feature_extraction.text import TfidfVectorizer
 import random
 from itertools import combinations
 
@@ -42,7 +42,6 @@ collection = db["prueba"]
 
 # Configuración
 NUM_ITERATIONS = 12
-SLEEP_INTERVAL = 5
 WORDS_FILE = 'spanish_words.txt'
 SEARCH_QUERIES = []
 
@@ -56,6 +55,41 @@ def load_spanish_words(file_path):
         logging.error("El archivo de palabras en español no se encontró.")
         return []
 
+def generate_search_queries(words, max_length=5):
+    """Genera combinaciones de palabras para formar oraciones."""
+    queries = []
+    for length in range(1, max_length + 1):
+        queries.extend([' '.join(comb) for comb in combinations(words, length)])
+    return queries
+
+def extract_keywords(content):
+    """Extrae palabras clave utilizando TF-IDF y convierte el resultado a una lista para evitar problemas de codificación."""
+    vectorizer = TfidfVectorizer(max_df=0.8)
+    tfidf_matrix = vectorizer.fit_transform(content)
+    features = vectorizer.get_feature_names_out()
+
+    # Convertimos a lista antes de devolver
+    return features[:10].tolist()  # Devuelve las 10 principales palabras clave como lista
+
+
+
+def fetch_web_content(query):
+    """Realiza una búsqueda en la web y devuelve el contenido."""
+    session = requests.Session()
+    try:
+        search_url = f"https://www.google.com/search?q={query}"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        
+        response = session.get(search_url, headers=headers, timeout=30)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        results = [result.get_text() for result in soup.find_all('h3')]
+        return results
+    except requests.RequestException as e:
+        logging.error(f"Error al buscar el contenido para '{query}': {e}")
+        return []
+
 def create_file(file_path: Path, content: str) -> str:
     """Crea un archivo con el contenido especificado."""
     try:
@@ -65,43 +99,6 @@ def create_file(file_path: Path, content: str) -> str:
     except Exception as e:
         logging.error(f"Error al crear el archivo {file_path}: {e}")
         return f"Error al crear el archivo {file_path}: {e}"
-
-def create_structure(base_dir: Path, items: list) -> list:
-    """Crea la estructura de directorios y archivos según la configuración."""
-    log = []
-    for item in items:
-        path = base_dir / item['path']
-        try:
-            if item['type'] == 'directory':
-                path.mkdir(parents=True, exist_ok=True)
-                log.append(f"Directorio creado: {path.resolve()}")
-            elif item['type'] == 'file':
-                path.parent.mkdir(parents=True, exist_ok=True)
-                content = item.get('content', f"# Contenido inicial para {path.name}")
-                log.append(create_file(path, content))
-            else:
-                raise ValueError(f"Tipo desconocido para {path}")
-        except Exception as e:
-            logging.error(f"Error al crear {path}: {e}")
-            log.append(f"Error: {e}")
-    return log
-
-def load_config(file_path: Path) -> list:
-    """Carga y valida la configuración del archivo JSON."""
-    try:
-        with open(file_path, 'r') as f:
-            items = json.load(f)
-            if not isinstance(items, list):
-                raise ValueError("La configuración debe ser una lista en el archivo JSON.")
-            for item in items:
-                if not isinstance(item, dict) or 'type' not in item or 'path' not in item:
-                    raise ValueError("Cada elemento debe ser un diccionario con 'type' y 'path'.")
-                if item['type'] not in ['directory', 'file']:
-                    raise ValueError("El valor de 'type' debe ser 'directory' o 'file'.")
-            return items
-    except (json.JSONDecodeError, ValueError, FileNotFoundError) as e:
-        logging.error(f"Error al leer el archivo de configuración: {e}")
-        raise RuntimeError(f"Error al leer el archivo de configuración: {e}")
 
 def open_vscode(directory: Path):
     """Abre Visual Studio Code en el directorio especificado."""
@@ -116,11 +113,8 @@ def open_vscode(directory: Path):
         except subprocess.CalledProcessError as e:
             logging.error(f"Error al abrir Visual Studio Code: {e}")
             messagebox.showerror("Error", f"No se pudo abrir Visual Studio Code: {e}")
-        except Exception as e:
-            logging.error(f"Error inesperado al abrir Visual Studio Code: {e}")
-            messagebox.showerror("Error", f"Error inesperado: {e}")
     else:
-        messagebox.showwarning("Advertencia", "Visual Studio Code no está instalado o el comando 'code' no está en el PATH. Por favor, instala Visual Studio Code y asegúrate de que el comando 'code' esté disponible en la línea de comandos.")
+        messagebox.showwarning("Advertencia", "Visual Studio Code no está instalado.")
 
 def open_file_explorer(directory: Path):
     """Abre el explorador de archivos en el directorio especificado."""
@@ -143,29 +137,6 @@ def check_vscode_installed() -> bool:
         return True
     except FileNotFoundError:
         return False
-
-def generate_search_queries(words, max_length=5):
-    """Genera combinaciones de palabras para formar oraciones."""
-    queries = []
-    for length in range(1, max_length + 1):
-        queries.extend([' '.join(comb) for comb in combinations(words, length)])
-    return queries
-
-def fetch_web_content(query):
-    """Realiza una búsqueda en la web y devuelve el contenido."""
-    session = requests.Session()
-    try:
-        search_url = f"https://www.google.com/search?q={query}"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-        response = session.get(search_url, headers=headers, timeout=30)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        results = [result.get_text() for result in soup.find_all('h3')]
-        return results
-    except requests.RequestException as e:
-        logging.error(f"Error al buscar el contenido para '{query}': {e}")
-        return []
 
 class SearchApp(tk.Tk):
     def __init__(self):
@@ -210,8 +181,9 @@ class SearchApp(tk.Tk):
                 try:
                     results = future.result()
                     if results:
-                        # Insertar en MongoDB
-                        collection.insert_one({'query': query, 'results': results})
+                        # Inserta resultados en MongoDB con palabras clave extraídas
+                        keywords = extract_keywords(results)
+                        collection.insert_one({'query': query, 'results': results, 'keywords': keywords})
                         logging.info(f"Resultados para '{query}' guardados en MongoDB.")
                     else:
                         logging.warning(f"No se encontraron resultados para '{query}'.")
@@ -230,17 +202,19 @@ class SearchApp(tk.Tk):
             queries = [item['query'] for item in data]
             results_count = [len(item['results']) for item in data]
 
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.barh(queries, results_count, color='skyblue')
-            ax.set_xlabel('Número de Resultados')
-            ax.set_title('Resultados por Consulta')
+            fig, ax = plt.subplots()
+            ax.bar(queries, results_count)
+            ax.set_xlabel('Consultas')
+            ax.set_ylabel('Número de Resultados')
+            ax.set_title('Resultados de Búsqueda por Consulta')
+            plt.xticks(rotation=90)
 
             canvas = FigureCanvasTkAgg(fig, master=self)
             canvas.draw()
             canvas.get_tk_widget().pack()
         except Exception as e:
             logging.error(f"Error al mostrar el gráfico: {e}")
-            messagebox.showerror("Error", f"Error al mostrar el gráfico: {e}")
+            messagebox.showerror("Error", f"No se pudo mostrar el gráfico: {e}")
 
 if __name__ == '__main__':
     app = SearchApp()
