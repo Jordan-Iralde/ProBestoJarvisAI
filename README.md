@@ -1,52 +1,72 @@
-📌 Proyecto: IA Autodidacta y Autónoma con Integración Multimodal
-Descripción General
-Este proyecto tiene como objetivo desarrollar un sistema de Inteligencia Artificial completamente autónomo, capaz de aprender y optimizarse sin intervención humana. El sistema combina automatización, reconocimiento facial, clonación de voz, integración con sistemas operativos y optimización del rendimiento de la computadora. Este enfoque se centra en la capacidad de la IA para realizar tareas complejas, aprender de manera continua y adaptarse a nuevos entornos y desafíos.
+# 🌐 **JARVIS**
 
-🎯 Objetivos del Proyecto
-Automatización y Entrenamiento: Desarrollar un pipeline de entrenamiento automático que optimiza y mejora el rendimiento de la IA mediante consultas automatizadas y refuerzo basado en modelos de lenguaje.
+## **Descripción General**
+Bienvenido al proyecto de **JARVIS**, una IA, hecha para aprender, adaptarse y optimizarse de manera totalmente autónoma. Nuestro objetivo es crear un sistema que no solo automatice tareas complejas, sino que también evolucione en tiempo real, integrando tecnologías avanzadas como el **reconocimiento facial**, la **clonación de voz** y la **optimización dinámica de recursos**.
 
-Integración Multimodal: Implementar reconocimiento facial y clonación de voz para facilitar la interacción y entrenamiento del sistema.
+Este proyecto busca una **IA autosuficiente** capaz de entender, aprender y mejorar continuamente sin intervención humana directa. El sistema está diseñado para integrarse de manera eficiente con **sistemas operativos**, **dispositivos IoT** y **entornos interactivos**, creando un ecosistema inteligente que facilita la vida cotidiana y optimiza el rendimiento.
 
-Interacción con Sistemas Operativos: Desplegar scripts y procesos que permitan a la IA interactuar y optimizar recursos de la PC de manera autónoma.
+---
 
-Expansión y Escalabilidad: Adaptar la IA para integrarse en diversos sistemas operativos y dispositivos, asegurando una fácil implementación y escalabilidad.
+## **🎯 Objetivos del Proyecto**
+- **Automatización y Entrenamiento:** Desarrollar un pipeline automatizado que optimice la IA mediante consultas y refuerzos diarios, mejorando sus capacidades en **tiempo real**.
+- **Integración Multimodal:** Implementar tecnologías avanzadas como el **reconocimiento facial** y la **clonación de voz**, creando una experiencia de interacción más natural y eficiente.
+- **Interacción con Sistemas Operativos:** Capacitar a la IA para ejecutar scripts y procesos que optimicen los recursos de tu PC de forma autónoma.
+- **Expansión y Escalabilidad:** Permitir que la IA se integre de manera sencilla en **diversos sistemas operativos** y **dispositivos**, asegurando su **escabilidad**.
+- **Autoaprendizaje y Adaptabilidad:** Habilitar capacidades de aprendizaje continuo, con funcionalidades avanzadas como **análisis de sentimientos**, **comprensión de lenguaje natural** y **toma de decisiones autónomas**.
 
-Autoaprendizaje y Adaptabilidad: Permitir que la IA se autoentrene y se ajuste a contextos variables en tiempo real, con capacidades avanzadas como análisis de sentimientos y comprensión del lenguaje natural.
+---
 
-🚀 Fases del Proyecto
-<br>
-Fase 1: Automatización, Entrenamiento e Interfaz, Busquedas
-Objetivo: Configurar la ejecución automática de scripts para el entrenamiento de la IA y la eliminación periódica de datos en la base de datos.
-Es capaz de realizar busquedas en Internet, Guardar datos de un Keylogger y las busquedas para su proximo entrenamiento en una Base de Datos no Relacional con MongoDB, 
-<br>
-Fase 2: Entrenamiento de Modelos
-Objetivo: El entrenamiento del modelo, con la base de datos no relacional, que se mejora automaticamente dia a dia.
-Este modelo se divide en dos partes, JAR y VIS, siendo que JAR se orienta a hablar naturalmente, Traducir en Tiempo real y aprender del keylogger, reconocer rostros y dar ideas.
-El modelo VIS se basa en la generacion de codigo y entrenamiento general, y reforzado, mejora automaticamente
-<br>
-Fase 3: Optimizacion de Codigos
-Objetivo: Esta fase se centra en optimizar codigos, sistemas operativos, entendimiento general, se integra a juegos para el aprendizaje y entrenamiento y ser capaz de resolver cualquier problema
+## **🚀 Fases del Proyecto**
 
-🛠️ Instalación y Configuración
-Para instalar todas las dependencias necesarias, usa el siguiente script de Python:
-- InstalarDependencias.py
+### **Fase 1: Automatización y Entrenamiento**
+**Objetivo:** Configurar la ejecución automática de scripts para el entrenamiento de la IA y la limpieza periódica de datos en la base de datos.
 
-🖥️ Uso del Proyecto
-Ejecución Principal: Comienza ejecutando main.py para iniciar la secuencia de automatización y entrenamiento.
-Visualización y Monitoreo: Usa la interfaz gráfica para seguir el progreso y realizar ajustes en tiempo real.
-Optimización y Personalización: Adapta los parámetros y configuraciones según los requerimientos específicos de cada entorno.
-📈 Mejora Continua y Futuro del Proyecto
-Este proyecto está diseñado para evolucionar y mejorar continuamente, con un enfoque en la integración de nuevas tecnologías y la adaptación a diferentes plataformas. Los próximos pasos incluyen la expansión de capacidades avanzadas como la toma de decisiones autónomas y la colaboración en entornos distribuidos.
+- Capacidad de realizar búsquedas en Internet.
+- Guardado de datos personales para su posterior almacenamiento en una base de datos no relacional (MongoDB).
+- El sistema aprende y se adapta a través de la recolección de información y acciones automatizadas.
 
-📚 Documentación y Recursos Adicionales
-Para más detalles, consulta la documentación completa.
+### **Fase 2: Entrenamiento de Modelos**
+**Objetivo:** Entrenar modelos con datos acumulados de la base de datos no relacional, permitiendo la mejora continua.
 
-📬 Contribuciones
-¡Contribuciones, ideas y mejoras son bienvenidas! Si tienes alguna sugerencia o encuentras algún problema, no dudes en abrir un issue o enviar un pull request.
+- El modelo se divide en dos componentes:
+  - **JAR:** Focalizado en la interacción natural, traducción en tiempo real, aprendizaje autónomo mediante una backdoor, reconocimiento facial y generación de ideas.
+  - **VIS:** Enfocado en la generación de código, entrenamiento reforzado y optimización automática.
 
-🚧 Estado Actual
-El proyecto está en fase de desarrollo activo. Las funcionalidades básicas están implementadas, y se está trabajando en la integración de capacidades avanzadas. ¡Mantente al tanto para más actualizaciones!
+### **Fase 3: Optimización de Códigos**
+**Objetivo:** Mejorar la eficiencia del código, optimizar el sistema operativo y aprender de contextos complejos.
 
-🌐 Licencia
-Este proyecto está licenciado bajo la Licencia MIT.
+- Integración con entornos de juegos y situaciones reales para entrenar la IA en la resolución de problemas complejos.
+- Habilidad para resolver problemas de alta complejidad y optimizar el sistema sin intervención externa.
+
+---
+
+## **🛠️ Instalación y Configuración**
+
+Para comenzar con el proyecto, ejecuta el siguiente script para instalar todas las dependencias necesarias:
+
+```bash
+python InstalarDependencias.py
+```
+## **📈 Mejora Continua y Futuro del Proyecto**
+Este proyecto está diseñado para evolucionar y adaptarse constantemente. A medida que avances, encontrarás nuevas actualizaciones y mejoras que permiten integrar capacidades como **decisiones autónomas**, **entornos distribuidos**, y **colaboración entre IA**. Los próximos pasos incluyen expandir la capacidad de la IA para integrarse en más plataformas y dispositivos.
+
+---
+
+## **📚 Documentación y Recursos Adicionales**
+Consulta la documentación completa para obtener más detalles y orientación técnica.
+
+---
+
+## **📬 Contribuciones**
+¡Este proyecto es **abierto** y **colaborativo**! Si tienes sugerencias, mejoras o encuentras algún problema, no dudes en abrir un **issue** o enviar un **pull request**. Tu contribución es muy valiosa.
+
+---
+
+## **🚧 Estado Actual**
+El proyecto se encuentra en **fase de desarrollo activo**. Las funcionalidades básicas ya están implementadas y ahora se está trabajando en la integración de capacidades avanzadas. ¡Mantente atento a las actualizaciones!
+
+---
+
+## **🌐 Licencia**
+Este proyecto está licenciado bajo la **Licencia MIT**.
 
