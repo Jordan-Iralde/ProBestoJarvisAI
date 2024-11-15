@@ -1,3 +1,64 @@
-*   {
-    background-color: aqua;
+/* Reseteo de márgenes y padding */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Estilo general */
+body, html {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #282c34;
+    color: #fff;
+}
+
+main {
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+}
+
+p {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #61dafb;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 2px solid #61dafb;
+    border-radius: 5px;
+    font-size: 16px;
+    color: #333;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    background-color: #61dafb;
+    border: none;
+    border-radius: 5px;
+    color: #282c34;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #21a1f1;
+}
+
+.Container {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #61dafb;
+    border-radius: 5px;
+    background-color: #333;
+    color: #61dafb;
 }
