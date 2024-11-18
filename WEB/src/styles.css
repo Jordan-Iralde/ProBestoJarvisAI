@@ -1,0 +1,12 @@
+/* You can add global styles to this file, and also import other style files */
+
+*{
+    margin: 0%;
+    padding: 0%;
+}
+
+body{
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    background-color: #0d1321;
+    color: #F0EBD8;
+}
