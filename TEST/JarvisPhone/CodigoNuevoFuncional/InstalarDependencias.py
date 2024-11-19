@@ -7,7 +7,7 @@ dependencies = [
     "concurrent.futures", "requests", "bs4", "pymongo", "collections", "json", 
     "os", "subprocess", "sys", "pathlib", "logging", "dotenv", "random", "itertools", 
     "platform", "apscheduler", "numpy", "pandas", "joblib", "sklearn", "python-dotenv",
-    "scikit-learn", "schedule"
+    "scikit-learn", "schedule", "psutil"
 ]
 
 # Función para instalar dependencias
