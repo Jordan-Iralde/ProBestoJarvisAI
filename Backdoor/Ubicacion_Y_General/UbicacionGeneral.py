@@ -19,7 +19,7 @@ def get_location():
     try:
         response = requests.get('https://ipinfo.io')
         data = response.json()
-        location = f"{data['region']}, {data['country']}"
+        location = f"{data['city'], data['region']}, {data['country']}"
         return location
     except requests.exceptions.RequestException as e:
         print(f"Error al obtener la ubicación: {e}")
