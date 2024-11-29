@@ -16,7 +16,7 @@ os.makedirs(data_folder, exist_ok=True)
 LOG_FILE = os.path.join(data_folder, "sync_log.json")
 
 # Definición de URLs (sin autenticación con token)
-repo_url = "https://api.github.com/repos/usuario/repositorio/contents"  # Cambiar según el repositorio
+repo_url = "https://github.com/Jordan-Iralde/ProBestoJarvisAI"  # Cambiar según el repositorio
 
 # Función para comprobar la conexión a Internet
 def check_connection():
