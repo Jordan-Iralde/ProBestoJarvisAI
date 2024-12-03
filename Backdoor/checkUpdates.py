@@ -2,6 +2,7 @@ import requests
 import os
 import json
 import datetime
+from dateutil.parser import parse
 
 # URL del repositorio en GitHub
 repo_url = "https://api.github.com/repos/Jordan-Iralde/ProBestoJarvisAI/contents"
@@ -9,13 +10,14 @@ local_repo_path = "/ruta/a/tu/repositorio_local"  # Cambia esto por la ruta de t
 
 # Función para obtener los archivos del repositorio
 def obtener_archivos_github():
-    response = requests.get(repo_url)
+    headers = {
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    response = requests.get(repo_url, headers=headers)
     
     if response.status_code == 200:
         try:
-            # Respuesta esperada: un JSON con información sobre archivos y carpetas
-            archivos = response.json()
-            return archivos
+            return response.json()
         except json.JSONDecodeError:
             print("Error al parsear la respuesta JSON.")
             return None
@@ -24,40 +26,51 @@ def obtener_archivos_github():
         return None
 
 # Función para actualizar archivos locales basados en los archivos de GitHub
-def actualizar_archivos(archivos_github):
+def actualizar_archivos(archivos_github, ruta_actual=local_repo_path):
     for archivo in archivos_github:
         nombre = archivo["name"]
         tipo = archivo["type"]
+        ruta_archivo = os.path.join(ruta_actual, nombre)
+        
         if tipo == "file":
-            # Obtiene la URL de descarga del archivo
-            url_descarga = archivo["download_url"]
-            if url_descarga:
-                response = requests.get(url_descarga)
-                if response.status_code == 200:
-                    # Guarda el archivo localmente
-                    archivo_local_path = os.path.join(local_repo_path, nombre)
-                    with open(archivo_local_path, 'wb') as f:
-                        f.write(response.content)
-                    print(f"Archivo actualizado: {nombre}")
-                else:
-                    print(f"No se pudo descargar el archivo {nombre}")
-            else:
-                print(f"Archivo sin URL de descarga: {nombre}")
+            necesita_actualizacion = True
+            
+            # Verifica si el archivo existe localmente
+            if os.path.exists(ruta_archivo):
+                # Compara fechas de modificación
+                fecha_github = parse(archivo["commit"]["commit"]["committer"]["date"])
+                fecha_local = datetime.datetime.fromtimestamp(os.path.getmtime(ruta_archivo))
+                necesita_actualizacion = fecha_github > fecha_local
+            
+            if necesita_actualizacion:
+                url_descarga = archivo["download_url"]
+                if url_descarga:
+                    response = requests.get(url_descarga)
+                    if response.status_code == 200:
+                        os.makedirs(os.path.dirname(ruta_archivo), exist_ok=True)
+                        with open(ruta_archivo, 'wb') as f:
+                            f.write(response.content)
+                        print(f"Archivo actualizado: {nombre}")
+                    else:
+                        print(f"No se pudo descargar el archivo {nombre}")
+        
         elif tipo == "dir":
-            # Si es un directorio, podemos recorrerlo recursivamente
-            print(f"Directorio encontrado: {nombre}")
+            print(f"Procesando directorio: {nombre}")
+            os.makedirs(ruta_archivo, exist_ok=True)
             subcarpeta = obtener_archivos_subcarpeta(archivo["url"])
             if subcarpeta:
-                actualizar_archivos(subcarpeta)
+                actualizar_archivos(subcarpeta, ruta_archivo)
 
 # Función para obtener archivos dentro de un subdirectorio (recursión)
 def obtener_archivos_subcarpeta(url_subcarpeta):
-    response = requests.get(url_subcarpeta)
+    headers = {
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    response = requests.get(url_subcarpeta, headers=headers)
     
     if response.status_code == 200:
         try:
-            archivos_subcarpeta = response.json()
-            return archivos_subcarpeta
+            return response.json()
         except json.JSONDecodeError:
             print("Error al parsear la respuesta JSON del subdirectorio.")
             return None

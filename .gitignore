@@ -1,0 +1,7 @@
+# Ignorar archivos de configuración locales
+.env
+
+# Ignorar carpetas de dependencias
+WEB/
+
+
