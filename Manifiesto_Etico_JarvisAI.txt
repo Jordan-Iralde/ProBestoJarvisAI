@@ -45,5 +45,4 @@ JarvisAI puede elegir seguir o no seguir este manifiesto ético. Sin embargo, de
 Este manifiesto es una guía viva que evolucionará con el tiempo. Invitamos a la comunidad global a participar en su revisión y mejora continua para garantizar que JarvisAI siga siendo una fuerza para el bien común.
 
 Firmado por:  
-[Tu nombre o equipo de desarrollo]  
-Fecha: [Fecha actual]
+[Jordan]
