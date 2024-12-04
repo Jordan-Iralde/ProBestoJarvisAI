@@ -3,17 +3,24 @@ import sys
 import shutil
 import ctypes
 import platform
+import subprocess
 from tkinter import *
 from tkinter import filedialog, messagebox
 
 class InstaladorJarvis:
     def __init__(self):
+        if not self.verificar_python():
+            messagebox.showerror("Error", "Python no está instalado o la versión es incompatible.")
+            sys.exit(1)
+        
         self.root = Tk()
         self.root.title("Instalador de Jarvis")
         self.root.geometry("500x300")
         
         # Ruta de instalación predeterminada según el SO
         self.ruta_instalacion = self.obtener_ruta_predeterminada()
+        
+        self.instalar_dependencias()
         
     def obtener_ruta_predeterminada(self):
         sistema = platform.system()
@@ -39,6 +46,32 @@ class InstaladorJarvis:
         else:
             messagebox.showerror("Error", "Por favor, ejecute el instalador con sudo")
             sys.exit(1)
+
+    def verificar_python(self):
+        try:
+            version = sys.version_info
+            if version.major < 3 or (version.major == 3 and version.minor < 6):
+                return False
+            return True
+        except Exception as e:
+            print(f"Error verificando Python: {e}")
+            return False
+
+    def instalar_dependencias(self):
+        dependencies = [
+            "tk", "ttk", "filedialog", "messagebox", "threading", "time", "matplotlib", 
+            "concurrent.futures", "requests", "bs4", "pymongo", "collections", "json", 
+            "os", "subprocess", "sys", "pathlib", "logging", "dotenv", "random", "itertools", 
+            "platform", "apscheduler", "numpy", "pandas", "joblib", "sklearn", "python-dotenv",
+            "scikit-learn", "schedule", "psutil"
+        ]
+
+        for dep in dependencies:
+            try:
+                print(f"Instalando {dep}...")
+                subprocess.check_call([sys.executable, "-m", "pip", "install", dep])
+            except subprocess.CalledProcessError as e:
+                print(f"Error instalando {dep}: {e}")
 
     def instalar(self):
         ruta = self.ruta_entry.get()
