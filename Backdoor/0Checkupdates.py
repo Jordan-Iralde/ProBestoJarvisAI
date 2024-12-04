@@ -17,7 +17,7 @@ def actualizar_archivos():
         "BusquedasFrecuentes.py",
         "Horarios_De_Uso.py",
         "keylogger.py",
-        "PatronesDePc.py",
+        "PatronesDePC.py",
         "TiempoEnApps.py",
         "UbicacionGeneral.py"
     ]
@@ -46,14 +46,14 @@ def actualizar_archivos():
                 # Guardar archivo en la ubicación actual
                 with open(ruta_local, 'wb') as f:
                     f.write(response.content)
-                print(f"✓ Archivo actualizado exitosamente: {archivo}")
+                print(f"[OK] Archivo actualizado exitosamente: {archivo}")
                 actualizados += 1
             else:
-                print(f"✗ Error al descargar: {response.status_code}")
+                print(f"[X] Error al descargar: {response.status_code}")
                 errores += 1
                 
         except Exception as e:
-            print(f"✗ Error inesperado: {str(e)}")
+            print(f"[X] Error inesperado: {str(e)}")
             errores += 1
     
     # Mostrar resumen
