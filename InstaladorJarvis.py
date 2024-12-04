@@ -9,8 +9,14 @@ from tkinter import filedialog, messagebox
 
 class InstaladorJarvis:
     def __init__(self):
+        try:
+            import tkinter
+        except ImportError:
+            print("Tkinter no está instalado. Intentando instalar dependencias del sistema...")
+            self.verificar_dependencias_sistema()
+            
         if not self.verificar_python():
-            messagebox.showerror("Error", "Python no está instalado o la versión es incompatible.")
+            print("Error: Python no está instalado o la versión es incompatible.")
             sys.exit(1)
         
         self.root = Tk()
@@ -21,6 +27,48 @@ class InstaladorJarvis:
         self.ruta_instalacion = self.obtener_ruta_predeterminada()
         
         self.instalar_dependencias()
+
+    def verificar_dependencias_sistema(self):
+        sistema = platform.system()
+        if sistema == "Linux":
+            distro = ""
+            try:
+                with open("/etc/os-release") as f:
+                    for line in f:
+                        if line.startswith("ID="):
+                            distro = line.split("=")[1].strip().strip('"')
+                            break
+            except:
+                pass
+
+            try:
+                if distro == "arch":
+                    # Para Arch Linux
+                    print("Instalando dependencias del sistema en Arch Linux...")
+                    subprocess.check_call(["sudo", "pacman", "-S", "--noconfirm", "tk"])
+                elif distro in ["ubuntu", "debian"]:
+                    # Para Ubuntu/Debian
+                    subprocess.check_call(["sudo", "apt-get", "install", "-y", "python3-tk"])
+                elif distro in ["fedora"]:
+                    # Para Fedora
+                    subprocess.check_call(["sudo", "dnf", "install", "-y", "python3-tkinter"])
+                else:
+                    messagebox.showwarning("Advertencia", 
+                        "No se pudo detectar la distribución Linux.\n"
+                        "Por favor, instale manualmente el paquete tk/tkinter para Python.")
+            except subprocess.CalledProcessError as e:
+                messagebox.showerror("Error", 
+                    f"Error instalando dependencias del sistema:\n{str(e)}\n"
+                    "Por favor, instale manualmente tk/tkinter.")
+                sys.exit(1)
+        elif sistema == "Darwin":  # macOS
+            try:
+                subprocess.check_call(["brew", "install", "python-tk"])
+            except:
+                messagebox.showwarning("Advertencia",
+                    "Por favor instale tkinter usando:\n"
+                    "brew install python-tk\n"
+                    "O descargue Python desde python.org que incluye tkinter")
         
     def obtener_ruta_predeterminada(self):
         sistema = platform.system()
@@ -59,13 +107,14 @@ class InstaladorJarvis:
 
     def instalar_dependencias(self):
         dependencies = [
-            "tk", "ttk", "filedialog", "messagebox", "threading", "time", "matplotlib", 
-            "concurrent.futures", "requests", "bs4", "pymongo", "collections", "json", 
-            "os", "subprocess", "sys", "pathlib", "logging", "dotenv", "random", "itertools", 
-            "platform", "apscheduler", "numpy", "pandas", "joblib", "sklearn", "python-dotenv",
-            "scikit-learn", "schedule", "psutil"
+            "tk", "matplotlib", "requests", "beautifulsoup4", "pymongo",
+            "python-dotenv", "apscheduler", "numpy", "pandas", "joblib",
+            "scikit-learn", "schedule", "psutil", "pillow", "pyttsx3",
+            "SpeechRecognition", "pyaudio", "openai", "python-vlc",
+            "pynput", "pyautogui", "keyboard", "mouse"
         ]
 
+        print("Instalando dependencias de Python...")
         for dep in dependencies:
             try:
                 print(f"Instalando {dep}...")
@@ -98,19 +147,56 @@ class InstaladorJarvis:
     def crear_accesos_directos(self, ruta):
         sistema = platform.system()
         if sistema == "Windows":
-            # Crear acceso directo en el escritorio
-            desktop = os.path.join(os.path.expanduser("~"), "Desktop")
-            # Aquí iría el código para crear el acceso directo .lnk
+            try:
+                import winshell
+                from win32com.client import Dispatch
+                desktop = winshell.desktop()
+                path = os.path.join(desktop, "Jarvis.lnk")
+                target = os.path.join(ruta, "jarvis.exe")
+                
+                shell = Dispatch('WScript.Shell')
+                shortcut = shell.CreateShortCut(path)
+                shortcut.Targetpath = target
+                shortcut.WorkingDirectory = ruta
+                shortcut.save()
+            except Exception as e:
+                print(f"Error creando acceso directo en Windows: {e}")
+                
         elif sistema == "Linux":
-            # Crear archivo .desktop
-            desktop_entry = """[Desktop Entry]
-            Name=Jarvis
-            Exec={}/jarvis
-            Type=Application
-            Terminal=false
-            """.format(ruta)
-            with open("/usr/share/applications/jarvis.desktop", "w") as f:
-                f.write(desktop_entry)
+            try:
+                desktop_entry = """[Desktop Entry]
+                Name=Jarvis
+                Exec={}/jarvis
+                Type=Application
+                Terminal=false
+                Categories=Utility;
+                """.format(ruta)
+                
+                # Crear acceso directo en el menú de aplicaciones
+                with open("/usr/share/applications/jarvis.desktop", "w") as f:
+                    f.write(desktop_entry)
+                
+                # Crear acceso directo en el escritorio
+                desktop_path = os.path.expanduser("~/Desktop")
+                with open(os.path.join(desktop_path, "jarvis.desktop"), "w") as f:
+                    f.write(desktop_entry)
+                
+                # Dar permisos de ejecución
+                os.chmod(os.path.join(desktop_path, "jarvis.desktop"), 0o755)
+            except Exception as e:
+                print(f"Error creando acceso directo en Linux: {e}")
+                
+        elif sistema == "Darwin":  # macOS
+            try:
+                # Crear alias en Applications
+                app_path = os.path.join(ruta, "Jarvis.app")
+                os.system(f"ln -s {ruta}/jarvis {app_path}")
+                
+                # Crear alias en el Dock
+                os.system(f"defaults write com.apple.dock persistent-apps -array-add '<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>{app_path}</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>'")
+                os.system("killall Dock")
+            except Exception as e:
+                print(f"Error creando acceso directo en macOS: {e}")
 
     def crear_interfaz(self):
         Label(self.root, text="Instalador de Jarvis", font=("Arial", 16)).pack(pady=20)
