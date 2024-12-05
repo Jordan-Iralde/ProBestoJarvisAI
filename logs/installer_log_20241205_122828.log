@@ -1,0 +1,12 @@
+2024-12-05 12:28:28,300 - INFO - Mostrando banner del instalador
+2024-12-05 12:28:28,300 - INFO - Iniciando proceso de creación del instalador
+2024-12-05 12:28:28,479 - INFO - Conexión exitosa a https://www.google.com
+2024-12-05 12:28:28,479 - INFO - Espacio libre en disco: 154159.60546875 MB
+2024-12-05 12:28:30,108 - INFO - Dependencias instaladas correctamente
+2024-12-05 12:28:31,263 - INFO - Descarga completada: repo_files.zip
+2024-12-05 12:28:31,279 - INFO - Archivo ZIP verificado correctamente
+2024-12-05 12:28:31,282 - INFO - Launcher creado correctamente
+2024-12-05 12:28:40,261 - INFO - Instalador creado exitosamente en: dist\JarvisAI_Setup.exe
+2024-12-05 12:28:40,277 - ERROR - Error al crear acceso directo: Property '<unknown>.IconLocation' can not be set.
+2024-12-05 12:28:40,278 - INFO - Eliminado archivo temporal: repo_files.zip
+2024-12-05 12:28:40,279 - INFO - Eliminado archivo temporal: launcher.py
