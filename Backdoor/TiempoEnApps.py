@@ -4,6 +4,12 @@ import time
 import threading
 from pymongo import MongoClient
 import datetime
+import json
+from typing import Dict, List, Optional
+from dataclasses import dataclass, asdict
+import logging
+from datetime import timedelta
+import gzip
 
 # Configuración de MongoDB
 mongo_uri = "mongodb+srv://iraldejordan10:r5dcxq5RHNDrxt69@jarviscluster.et2fo.mongodb.net/"
@@ -13,7 +19,7 @@ collection = db["TiempoEnApps"]
 
 # Directorio donde se guardarán los datos localmente
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-data_folder = os.path.join(desktop_path, "jarvis_data")
+data_folder = os.path.join(desktop_path, "jarvis_data", "apps")
 os.makedirs(data_folder, exist_ok=True)
 
 # Variables de control
@@ -22,39 +28,207 @@ save_interval = 300  # Guardar cada 5 minutos
 max_idle_time = 600  # Reiniciar después de 10 minutos de inactividad
 last_saved = time.time()
 
-def get_active_apps():
-    """Obtiene los procesos activos y sus tiempos de inicio."""
-    active_apps = []
-    for proc in psutil.process_iter(['pid', 'name', 'create_time']):
+# Configuración de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename=os.path.join(data_folder, 'app_monitor.log')
+)
+
+@dataclass
+class AppUsageStats:
+    """Clase para almacenar estadísticas de uso de aplicaciones."""
+    total_time: timedelta
+    session_count: int
+    avg_cpu_usage: float
+    avg_memory_usage: float
+    last_active: datetime.datetime
+    focus_time: timedelta  # Tiempo que la app estuvo en primer plano
+
+class AppMonitor:
+    """Clase principal para monitorear aplicaciones."""
+    def __init__(self):
+        self.app_stats: Dict[str, AppUsageStats] = {}
+        self.last_active_window = None
+        self.session_start = datetime.datetime.now()
+        self.active_apps_history = []
+
+    def get_app_details(self, proc):
+        """Obtiene detalles extendidos de la aplicación."""
         try:
-            # Filtra los procesos con un nombre adecuado y los que están en ejecución
+            with proc.oneshot():  # Optimiza múltiples llamadas
+                return {
+                    'pid': proc.pid,
+                    'name': proc.name(),
+                    'start_time': datetime.datetime.fromtimestamp(proc.create_time()),
+                    'cpu_usage': proc.cpu_percent(),
+                    'memory_usage': proc.memory_percent(),
+                    'status': proc.status(),
+                    'category': self.categorize_app(proc.name()),
+                    'window_title': self.get_window_title(proc.pid),
+                    'command_line': proc.cmdline(),
+                    'num_threads': proc.num_threads(),
+                    'parent_process': proc.parent().name() if proc.parent() else None,
+                    'children_processes': [child.name() for child in proc.children()],
+                    'is_focused': self.is_focused_window(proc.pid)
+                }
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            return None
+
+    def analyze_usage_patterns(self) -> Dict:
+        """Analiza patrones de uso para insights."""
+        return {
+            'most_used_apps': self.get_most_used_apps(),
+            'peak_usage_times': self.get_peak_usage_times(),
+            'productivity_score': self.calculate_productivity_score(),
+            'usage_trends': self.calculate_usage_trends(),
+            'category_distribution': self.get_category_distribution()
+        }
+
+    def calculate_productivity_score(self) -> float:
+        """Calcula un score de productividad basado en el uso de apps."""
+        productivity_weights = {
+            'development': 1.0,
+            'productivity': 0.8,
+            'communication': 0.6,
+            'browsers': 0.4,
+            'entertainment': 0.2
+        }
+        # ... cálculo del score ...
+        return score
+
+    def save_to_db(self, active_apps: List[Dict]):
+        """Guarda datos con análisis adicional."""
+        timestamp = datetime.datetime.utcnow()
+        
+        # Análisis de la sesión actual
+        session_analysis = {
+            'duration': (datetime.datetime.now() - self.session_start).total_seconds(),
+            'productivity_score': self.calculate_productivity_score(),
+            'usage_patterns': self.analyze_usage_patterns(),
+            'system_resources': self.get_system_resources(),
+            'user_activity_metrics': self.get_user_activity_metrics()
+        }
+
+        document = {
+            'timestamp': timestamp,
+            'apps': active_apps,
+            'session_analysis': session_analysis,
+            'system_info': self.get_system_info(),
+            'usage_metrics': {
+                'total_apps': len(active_apps),
+                'categories': self.get_category_distribution(active_apps),
+                'focus_time': self.calculate_focus_time()
+            }
+        }
+
+        # Guardar en MongoDB
+        collection.insert_one(document)
+
+        # Guardar en archivo local con compresión
+        file_path = os.path.join(data_folder, f"app_usage_{timestamp.isoformat()}.gz")
+        with gzip.open(file_path, 'wt', encoding='utf-8') as f:
+            json.dump(document, f, default=str, indent=2)
+
+    def get_user_activity_metrics(self) -> Dict:
+        """Obtiene métricas de actividad del usuario."""
+        return {
+            'keyboard_activity': self.get_keyboard_activity(),
+            'mouse_activity': self.get_mouse_activity(),
+            'active_window_changes': self.get_window_changes(),
+            'idle_time': self.get_idle_time()
+        }
+
+def get_active_apps():
+    """Obtiene los procesos activos coninformación más detallada."""
+    active_apps = []
+    for proc in psutil.process_iter(['pid', 'name', 'create_time', 'cpu_percent', 'memory_percent', 'status']):
+        try:
             if proc.info['name'] and proc.info['create_time']:
                 start_time = datetime.datetime.fromtimestamp(proc.info['create_time'])
+                # Agregamos más información útil para el análisis
                 active_apps.append({
                     'pid': proc.info['pid'],
                     'name': proc.info['name'],
-                    'start_time': start_time
+                    'start_time': start_time,
+                    'cpu_usage': proc.info['cpu_percent'],
+                    'memory_usage': proc.info['memory_percent'],
+                    'status': proc.info['status'],
+                    'category': categorize_app(proc.info['name']),  # Nueva función
+                    'window_title': get_window_title(proc.info['pid'])  # Nueva función
                 })
         except (psutil.NoSuchProcess, psutil.AccessDenied):
-            # Si hay problemas de permisos o el proceso ya no existe, se omite
             continue
     return active_apps
 
+def categorize_app(app_name):
+    """Categoriza las aplicaciones en grupos."""
+    categories = {
+        'browsers': ['chrome.exe', 'firefox.exe', 'msedge.exe'],
+        'productivity': ['word.exe', 'excel.exe', 'powerpoint.exe', 'code.exe'],
+        'communication': ['teams.exe', 'slack.exe', 'discord.exe'],
+        'entertainment': ['spotify.exe', 'netflix.exe', 'steam.exe'],
+        'development': ['python.exe', 'node.exe', 'git.exe']
+    }
+    
+    app_name = app_name.lower()
+    for category, apps in categories.items():
+        if any(app in app_name for app in apps):
+            return category
+    return 'other'
+
+def get_window_title(pid):
+    """Obtiene el título de la ventana activa del proceso."""
+    try:
+        import win32gui
+        import win32process
+        def callback(hwnd, titles):
+            if win32gui.IsWindowVisible(hwnd):
+                _, found_pid = win32process.GetWindowThreadProcessId(hwnd)
+                if found_pid == pid:
+                    titles.append(win32gui.GetWindowText(hwnd))
+            return True
+        titles = []
+        win32gui.EnumWindows(callback, titles)
+        return titles[0] if titles else ''
+    except:
+        return ''
+
 def save_to_db(active_apps):
-    """Guarda la información de las aplicaciones activas en MongoDB y archivo local."""
+    """Guarda la información con metadatos adicionales."""
     timestamp = datetime.datetime.utcnow()
-    collection.insert_one({
+    system_info = {
+        'cpu_total': psutil.cpu_percent(interval=1),
+        'memory_total': psutil.virtual_memory().percent,
+        'boot_time': datetime.datetime.fromtimestamp(psutil.boot_time()),
+        'platform': os.name,
+        'machine': os.environ.get('COMPUTERNAME', 'unknown')
+    }
+    
+    document = {
         "timestamp": timestamp,
-        "apps": active_apps
-    })
+        "system_info": system_info,
+        "apps": active_apps,
+        "session_metrics": {
+            "total_apps": len(active_apps),
+            "categories_distribution": get_category_distribution(active_apps)
+        }
+    }
+    
+    collection.insert_one(document)
+    
+    # Guardar en formato JSON para mejor procesamiento
+    file_name = os.path.join(data_folder, f"app_usage_{timestamp.isoformat()}.json")
+    with open(file_name, 'w', encoding='utf-8') as file:
+        json.dump(document, file, default=str, indent=2)
 
-    # Guardar en archivo local
-    file_name = os.path.join(data_folder, f"app_usage_{timestamp.isoformat()}.txt")
-    with open(file_name, 'w') as file:
-        for app in active_apps:
-            file.write(f"PID: {app['pid']} | Name: {app['name']} | Start Time: {app['start_time']}\n")
-
-    print(f"Datos guardados: {file_name}")
+def get_category_distribution(active_apps):
+    """Calcula la distribución de aplicaciones por categoría."""
+    distribution = {}
+    for app in active_apps:
+        category = app['category']
+        distribution[category] = distribution.get(category, 0) + 1
+    return distribution
 
 def monitor_app_usage():
     """Monitorea el uso de aplicaciones y guarda los datos cada cierto intervalo."""

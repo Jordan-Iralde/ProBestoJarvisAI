@@ -9,10 +9,11 @@ import subprocess
 # Ruta donde se guardarán los datos
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 data_folder = os.path.join(desktop_path, "jarvis_data")
-os.makedirs(data_folder, exist_ok=True)
+system_folder = os.path.join(data_folder, "DatosDelSistema")
+os.makedirs(system_folder, exist_ok=True)
 
 # Archivo de datos
-file_name = os.path.join(data_folder, f"system_data_{datetime.now().date()}.txt")
+file_name = os.path.join(system_folder, f"system_data_{datetime.now().date()}.txt")
 
 # Función para obtener la ubicación actual del usuario
 def get_location():
@@ -74,9 +75,15 @@ def get_event_logs():
 # Función para guardar los datos en un archivo
 def save_data(location, system_info, active_processes, event_logs):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    computer_name = socket.gethostname()
+    user_name = os.getenv('USERNAME')
+    
     with open(file_name, 'w') as file:
+        file.write(f"=== Reporte de Sistema ===\n")
+        file.write(f"Generado desde el equipo: {computer_name}\n")
+        file.write(f"Usuario: {user_name}\n")
         file.write(f"Fecha y Hora: {timestamp}\n")
-        file.write(f"Ubicación: {location}\n")
+        file.write(f"Ubicación: {location}\n\n")
         file.write("Información del Sistema:\n")
         for key, value in system_info.items():
             file.write(f"{key}: {value}\n")
@@ -112,7 +119,7 @@ def create_startup_file():
     
     # Ruta de inicio correcto (Asegurándonos de la correcta localización en el sistema)
     startup_folder = os.path.join(os.getenv('APPDATA'), r'Microsoft\Windows\Start Menu\Programs\Startup')
-    bat_file_path = os.path.join(startup_folder, 'run_system_data_collector.bat')
+    bat_file_path = os.path.join(startup_folder, 'UbicacionGeneral.bat')
     
     # Verificamos si el archivo ya existe y, si no, lo creamos
     if not os.path.exists(bat_file_path):

