@@ -266,3 +266,53 @@ if __name__ == "__main__":
         print("\n❌ El proceso no se completó correctamente")
         print(f"Consulte el archivo de log para más detalles: {log_file}")
     input("\nPresione Enter para salir...")
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    Este instalador puede usar zip y tar.gz, ademas de rar

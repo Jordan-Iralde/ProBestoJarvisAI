@@ -19,15 +19,11 @@ import pickle
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
 import logging
-from transformers import pipeline
-from tensorflow.keras.models import load_model
-from transformers import AutoTokenizer, AutoModel
 import spacy
-from gensim.models import Word2Vec
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
-import torch
 import soundfile as sf
+import threading
 
 # Descargar recursos NLTK necesarios
 def download_nltk_resources():
@@ -159,39 +155,50 @@ class CacheManager:
 
 class EmotionalFeatureExtractor:
     def __init__(self):
-        self.nlp = spacy.load('es_core_news_lg')
-        # Modificar la inicialización del modelo de emociones para usar una alternativa
+        # Intentar cargar el modelo de spaCy
         try:
-            import tf_keras  # Intentar importar tf-keras primero
-            self.emotion_model = pipeline("text-classification", 
-                                       model="nlptown/bert-base-multilingual-uncased-emotion",
-                                       framework="tf")
-        except ImportError:
-            logging.warning("tf-keras no encontrado, usando modelo alternativo")
-            # Usar un modelo alternativo o deshabilitar esta funcionalidad
-            self.emotion_model = None
+            self.nlp = spacy.load('es_core_news_lg')
+        except OSError:
+            logging.warning("Modelo es_core_news_lg no encontrado. Intentando descargar...")
+            try:
+                os.system('python -m spacy download es_core_news_lg')
+                self.nlp = spacy.load('es_core_news_lg')
+            except Exception as e:
+                logging.error(f"No se pudo cargar el modelo de spaCy: {str(e)}")
+                try:
+                    self.nlp = spacy.load('es_core_news_sm')
+                except:
+                    logging.error("No se pudo cargar ningún modelo de spaCy")
+                    self.nlp = None
         
         self.context_memory = {}
-        
+
     def extract_emotional_features(self, text):
-        """Extrae características emocionales avanzadas del texto"""
         try:
-            doc = self.nlp(text)
             features = {
-                "semantic_intensity": doc.sentiment,
-                "entity_emotions": self._analyze_entity_emotions(doc),
-                "emotional_context": self._analyze_emotional_context(text),
-                "emotional_progression": self._track_emotional_changes(text)
+                "basic_analysis": TextBlob(text).sentiment.polarity
             }
-            
-            # Añadir emociones solo si el modelo está disponible
-            if self.emotion_model:
-                features["emotions"] = self.emotion_model(text)
+
+            if self.nlp is not None:
+                doc = self.nlp(text)
+                features.update({
+                    "semantic_intensity": doc.sentiment,
+                    "entity_emotions": self._analyze_entity_emotions(doc),
+                    "emotional_context": self._analyze_emotional_context(text)
+                })
                 
             return features
         except Exception as e:
             logging.error(f"Error en extracción emocional: {str(e)}")
-            return None
+            return {"basic_analysis": 0}
+
+    def _analyze_entity_emotions(self, doc):
+        # Implementación simplificada
+        return {}
+
+    def _analyze_emotional_context(self, text):
+        # Implementación simplificada
+        return {}
 
 class AdvancedDataPreprocessor:
     def __init__(self, input_folders, config):
@@ -204,50 +211,103 @@ class AdvancedDataPreprocessor:
             "metadata": {}
         }
         
-        # Inicialización de herramientas
+        # Inicialización mejorada de herramientas
         self.setup_tools()
         
-        self.emotional_extractor = EmotionalFeatureExtractor()
-        self.context_memory = {}
-        self.learning_patterns = {}
+        # Inicializar PCA con componentes dinámicos
+        self.pca = None  # Se inicializará según los datos
+        self.tfidf_vectorizer = TfidfVectorizer(
+            max_features=100,
+            min_df=1,         # Cambiado de 2 a 1 para manejar documentos pequeños
+            max_df=1.0,       # Cambiado de 0.95 a 1.0 para evitar errores con pocos documentos
+            token_pattern=r'(?u)\b\w+\b'  # Patrón más permisivo
+        )
         
-        # Nuevos modelos y herramientas
-        self.word2vec_model = Word2Vec(vector_size=300, window=5, min_count=1)
-        self.tfidf_vectorizer = TfidfVectorizer()
-        self.pca = PCA(n_components=50)
-        self.bert_tokenizer = AutoTokenizer.from_pretrained('bert-base-multilingual-cased')
-        self.bert_model = AutoModel.from_pretrained('bert-base-multilingual-cased')
-        
+        # Añadir diccionario thread-safe para caché
+        self.processing_cache = {}
+        self.cache_lock = threading.Lock()
+
     def setup_tools(self):
-        """Inicializa todas las herramientas necesarias"""
-        # NLP
-        self.lemmatizer = WordNetLemmatizer()
-        self.stop_words = set(stopwords.words('spanish') + stopwords.words('english'))
-        self.sentiment_analyzer = pipeline("sentiment-analysis")
-        
-        # Cache
-        self.cache_manager = CacheManager(self.config)
+        """Inicialización mejorada de herramientas"""
+        try:
+            # NLTK
+            nltk.download('punkt', quiet=True)
+            nltk.download('stopwords', quiet=True)
+            nltk.download('wordnet', quiet=True)
+            nltk.download('averaged_perceptron_tagger', quiet=True)
+            
+            self.stop_words = set(stopwords.words('spanish') + stopwords.words('english'))
+            
+            # spaCy
+            try:
+                self.nlp = spacy.load('es_core_news_sm')
+            except OSError:
+                logging.warning("Descargando modelo de spaCy...")
+                os.system('python -m spacy download es_core_news_sm')
+                self.nlp = spacy.load('es_core_news_sm')
+            
+            # Cache
+            self.cache_manager = CacheManager(self.config)
+            
+        except Exception as e:
+            logging.error(f"Error en setup_tools: {str(e)}")
+            raise
 
     def analyze_text(self, text):
-        """Análisis mejorado de texto con comprensión contextual"""
+        """Análisis de texto mejorado con mejor manejo de errores"""
         try:
-            # Análisis base existente
-            base_analysis = super().analyze_text(text)
+            if not isinstance(text, str) or not text.strip():
+                return None
+                
+            # Preprocesamiento básico
+            text = text.lower().strip()
+            doc = self.nlp(text)
             
-            # Características adicionales
-            emotional_features = self.emotional_extractor.extract_emotional_features(text)
-            context_features = self._analyze_context(text)
-            semantic_features = self._extract_semantic_features(text)
+            # Análisis básico
+            basic_analysis = {
+                "tokens": [token.text for token in doc],
+                "lemmas": [token.lemma_ for token in doc],
+                "pos_tags": [(token.text, token.pos_) for token in doc],
+                "entities": [(ent.text, ent.label_) for ent in doc.ents]
+            }
+            
+            # TF-IDF con manejo de errores
+            try:
+                tfidf_matrix = self.tfidf_vectorizer.fit_transform([text])
+                tfidf_features = tfidf_matrix.toarray()
+                
+                # PCA dinámico
+                n_components = min(50, tfidf_features.shape[1])
+                if n_components > 0:
+                    self.pca = PCA(n_components=n_components)
+                    semantic_features = self.pca.fit_transform(tfidf_features)
+                else:
+                    semantic_features = tfidf_features
+                    
+            except Exception as e:
+                logging.warning(f"Error en TF-IDF/PCA: {str(e)}")
+                semantic_features = np.array([[0]])  # Valor por defecto
+            
+            # Análisis de sentimiento
+            blob = TextBlob(text)
+            sentiment = {
+                "polarity": blob.sentiment.polarity,
+                "subjectivity": blob.sentiment.subjectivity
+            }
             
             return {
-                **base_analysis,
-                "emotional_analysis": emotional_features,
-                "context_understanding": context_features,
-                "semantic_features": semantic_features,
-                "adaptive_patterns": self._identify_patterns(text)
+                "basic_analysis": basic_analysis,
+                "semantic_features": semantic_features.tolist(),
+                "sentiment": sentiment,
+                "language": detect(text),
+                "metadata": {
+                    "text_length": len(text),
+                    "processed_timestamp": datetime.now().isoformat()
+                }
             }
+            
         except Exception as e:
-            logging.error(f"Error en análisis avanzado: {str(e)}")
+            logging.error(f"Error en análisis de texto: {str(e)}")
             return None
 
     def preprocess_audio_advanced(self, audio_path):
@@ -313,6 +373,60 @@ class AdvancedDataPreprocessor:
             logging.error(f"Error en preprocesamiento de imagen: {str(e)}")
             return None
 
+    def process_text_file(self, file_path):
+        """Procesamiento mejorado de archivos de texto con mejor manejo de errores"""
+        try:
+            # Verificar si el archivo existe
+            if not os.path.exists(file_path):
+                logging.warning(f"Archivo no encontrado: {file_path}")
+                return None
+
+            # Verificar tamaño del archivo
+            if os.path.getsize(file_path) == 0:
+                logging.warning(f"Archivo vacío: {file_path}")
+                return None
+
+            # Leer archivo con mejor manejo de codificación
+            text = None
+            for encoding in ['utf-8', 'latin-1', 'cp1252']:
+                try:
+                    with open(file_path, 'r', encoding=encoding) as f:
+                        text = f.read().strip()
+                    break
+                except UnicodeDecodeError:
+                    continue
+
+            if text is None:
+                logging.error(f"No se pudo decodificar el archivo: {file_path}")
+                return None
+
+            # Procesar el texto de manera segura
+            with self.cache_lock:
+                analysis = self.analyze_text(text)
+
+            if not analysis:
+                return None
+
+            processed_data = {
+                "file_path": file_path,
+                "file_name": os.path.basename(file_path),
+                "processed_date": self.config.CURRENT_DATE,
+                "analysis": analysis,
+                "metadata": {
+                    "file_size": os.path.getsize(file_path),
+                    "last_modified": datetime.fromtimestamp(
+                        os.path.getmtime(file_path)
+                    ).strftime("%Y-%m-%d %H:%M:%S"),
+                    "encoding_used": encoding
+                }
+            }
+
+            return processed_data
+
+        except Exception as e:
+            logging.error(f"Error procesando archivo {file_path}: {str(e)}", exc_info=True)
+            return None
+
     def process_files_parallel(self):
         """Procesa archivos en paralelo"""
         with ThreadPoolExecutor() as executor:
@@ -326,11 +440,12 @@ class AdvancedDataPreprocessor:
                     
                     # Procesar archivos en paralelo
                     files = [os.path.join(type_path, f) for f in os.listdir(type_path)]
+                    
                     if media_type == "texto":
                         futures = [executor.submit(self.process_text_file, f) for f in files]
                     elif media_type == "audio":
                         futures = [executor.submit(self.preprocess_audio_advanced, f) for f in files]
-                    else:
+                    else:  # imagen
                         futures = [executor.submit(self.preprocess_image_advanced, f) for f in files]
                     
                     # Recolectar resultados
@@ -343,37 +458,46 @@ class AdvancedDataPreprocessor:
                             logging.error(f"Error en procesamiento paralelo: {str(e)}")
 
     def save_preprocessed_data(self):
-        """Guarda datos preprocesados con metadata"""
-        os.makedirs(self.config.CURRENT_PREPROCESSED_PATH, exist_ok=True)
-        
-        # Metadata
-        self.preprocessed_data["metadata"] = {
-            "fecha_procesamiento": self.config.CURRENT_DATE,
-            "estadisticas": {
-                "total_textos": len(self.preprocessed_data["texto"]),
-                "total_audios": len(self.preprocessed_data["audio"]),
-                "total_imagenes": len(self.preprocessed_data["imagen"])
-            },
-            "configuracion": {
-                "version": "2.1",
-                "modelos_utilizados": ["NLTK", "TextBlob", "Librosa", "OpenCV"],
-                "idiomas_soportados": ["es", "en"]
+        """Guarda datos preprocesados en múltiples formatos"""
+        try:
+            os.makedirs(self.config.CURRENT_PREPROCESSED_PATH, exist_ok=True)
+            output_base = os.path.join(self.config.CURRENT_PREPROCESSED_PATH, "preprocessed_data")
+
+            # Convertir datos a DataFrame
+            df_dict = {
+                'texto': pd.DataFrame(self.preprocessed_data["texto"]),
+                'audio': pd.DataFrame(self.preprocessed_data["audio"]),
+                'imagen': pd.DataFrame(self.preprocessed_data["imagen"])
             }
-        }
-        
-        # Guardar datos
-        output_base = os.path.join(self.config.CURRENT_PREPROCESSED_PATH, "preprocessed_data")
-        
-        # JSON
-        with open(f"{output_base}.json", 'w', encoding='utf-8') as f:
-            json.dump(self.preprocessed_data, f, ensure_ascii=False, indent=2)
-        
-        # Pickle
-        with open(f"{output_base}.pkl", 'wb') as f:
-            pickle.dump(self.preprocessed_data, f)
-        
-        logging.info(f"Datos guardados en {self.config.CURRENT_PREPROCESSED_PATH}")
-        print(f"\nPreprocesamiento completado. Archivos guardados en: {self.config.CURRENT_PREPROCESSED_PATH}")
+
+            # Guardar en diferentes formatos
+            for data_type, df in df_dict.items():
+                if not df.empty:
+                    # CSV
+                    csv_path = f"{output_base}_{data_type}.csv"
+                    df.to_csv(csv_path, index=False)
+                    logging.info(f"Datos guardados en CSV: {csv_path}")
+
+                    # Parquet
+                    parquet_path = f"{output_base}_{data_type}.parquet"
+                    df.to_parquet(parquet_path, index=False)
+                    logging.info(f"Datos guardados en Parquet: {parquet_path}")
+
+                    # JSON (con mejor formato)
+                    json_path = f"{output_base}_{data_type}.json"
+                    df.to_json(json_path, orient='records', indent=2)
+                    logging.info(f"Datos guardados en JSON: {json_path}")
+
+            # Guardar metadata
+            metadata_path = f"{output_base}_metadata.json"
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(self.preprocessed_data["metadata"], f, ensure_ascii=False, indent=2)
+
+            logging.info(f"Preprocesamiento completado. Archivos guardados en: {self.config.CURRENT_PREPROCESSED_PATH}")
+
+        except Exception as e:
+            logging.error(f"Error guardando datos preprocesados: {str(e)}", exc_info=True)
+            raise
 
     def extract_multimodal_features(self, text, audio, image):
         """Extrae características combinando múltiples modalidades"""
@@ -478,25 +602,33 @@ class AdvancedDataPreprocessor:
         pass
 
 def main():
-    """Función principal mejorada"""
+    """Función principal de ejecución"""
     try:
         # Inicializar configuración
         config = Config()
+        logging.info("Iniciando preprocesamiento de datos...")
         
-        # Definir carpetas de entrada
-        input_folders = [
-            config.DATA_BD_PATH,
-            # Agregar más carpetas según sea necesario
-        ]
+        # Verificar estructura de carpetas
+        if not os.path.exists(config.DATA_BD_PATH):
+            logging.error(f"No se encuentra la carpeta de datos: {config.DATA_BD_PATH}")
+            return
+            
+        # Inicializar preprocesador
+        preprocessor = AdvancedDataPreprocessor([config.DATA_BD_PATH], config)
         
-        # Iniciar preprocesamiento
-        preprocessor = AdvancedDataPreprocessor(input_folders, config)
+        # Procesar archivos
+        logging.info("Iniciando procesamiento de archivos...")
         preprocessor.process_files_parallel()
+        
+        # Guardar resultados
+        logging.info("Guardando resultados...")
         preprocessor.save_preprocessed_data()
         
+        logging.info(f"Preprocesamiento completado. Resultados en: {config.CURRENT_PREPROCESSED_PATH}")
+        
     except Exception as e:
-        logging.error(f"Error crítico: {str(e)}")
-        print(f"Error crítico. Consulte el log para más detalles.")
+        logging.error(f"Error en el preprocesamiento: {str(e)}")
+        raise
 
 if __name__ == "__main__":
     main()
