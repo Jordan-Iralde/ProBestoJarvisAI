@@ -11,6 +11,7 @@ MONGO_URI = "mongodb+srv://iraldejordan10:r5dcxq5RHNDrxt69@jarviscluster.et2fo.m
 DATABASE_CONFIG = {
     "Backdoor": ["keylogger", "TiempoEnApps"],
     "keylogger_db": ["keystrokes"],
+    "JarvisAI": ["prueba"]
     # Añade más bases de datos y sus colecciones según necesites
 }
 
