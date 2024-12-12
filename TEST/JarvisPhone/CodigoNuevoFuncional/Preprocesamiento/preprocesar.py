@@ -201,31 +201,30 @@ class EmotionalFeatureExtractor:
         return {}
 
 class AdvancedDataPreprocessor:
-    def __init__(self, input_folders, config):
-        self.config = config
-        self.input_folders = input_folders
-        self.preprocessed_data = {
-            "texto": [],
-            "audio": [],
-            "imagen": [],
-            "metadata": {}
-        }
+    def __init__(self, config=None):
+        self.config = config or {}
+        self.nlp = None
+        self.stop_words = None
+        self.pca = None
         
-        # Inicialización mejorada de herramientas
-        self.setup_tools()
-        
-        # Inicializar PCA con componentes dinámicos
-        self.pca = None  # Se inicializará según los datos
+        # Inicializar vectorizador con parámetros más permisivos
         self.tfidf_vectorizer = TfidfVectorizer(
+            min_df=1,
+            max_df=1.0,
             max_features=100,
-            min_df=1,         # Cambiado de 2 a 1 para manejar documentos pequeños
-            max_df=1.0,       # Cambiado de 0.95 a 1.0 para evitar errores con pocos documentos
-            token_pattern=r'(?u)\b\w+\b'  # Patrón más permisivo
+            strip_accents='unicode',
+            lowercase=True
         )
         
-        # Añadir diccionario thread-safe para caché
+        # Cache thread-safe
         self.processing_cache = {}
         self.cache_lock = threading.Lock()
+        
+        # Configurar logging
+        self.setup_logging()
+        
+        # Inicializar herramientas
+        self.setup_tools()
 
     def setup_tools(self):
         """Inicialización mejorada de herramientas"""
@@ -245,70 +244,48 @@ class AdvancedDataPreprocessor:
                 logging.warning("Descargando modelo de spaCy...")
                 os.system('python -m spacy download es_core_news_sm')
                 self.nlp = spacy.load('es_core_news_sm')
-            
-            # Cache
-            self.cache_manager = CacheManager(self.config)
-            
+                
         except Exception as e:
             logging.error(f"Error en setup_tools: {str(e)}")
             raise
 
-    def analyze_text(self, text):
-        """Análisis de texto mejorado con mejor manejo de errores"""
+    def analyze_text(self, text, vectorizer=None):
         try:
-            if not isinstance(text, str) or not text.strip():
-                return None
-                
-            # Preprocesamiento básico
-            text = text.lower().strip()
-            doc = self.nlp(text)
+            # Asegurar que el texto es una lista
+            if isinstance(text, str):
+                text = [text]
             
-            # Análisis básico
-            basic_analysis = {
-                "tokens": [token.text for token in doc],
-                "lemmas": [token.lemma_ for token in doc],
-                "pos_tags": [(token.text, token.pos_) for token in doc],
-                "entities": [(ent.text, ent.label_) for ent in doc.ents]
-            }
+            # Si no hay vectorizador, crear uno nuevo
+            if vectorizer is None:
+                vectorizer = TfidfVectorizer(
+                    min_df=1,  # Reducido para manejar textos cortos
+                    max_df=1.0,  # Aumentado para ser más permisivo
+                    max_features=100  # Limitado para evitar dimensionalidad excesiva
+                )
             
-            # TF-IDF con manejo de errores
-            try:
-                tfidf_matrix = self.tfidf_vectorizer.fit_transform([text])
-                tfidf_features = tfidf_matrix.toarray()
-                
-                # PCA dinámico
-                n_components = min(50, tfidf_features.shape[1])
-                if n_components > 0:
-                    self.pca = PCA(n_components=n_components)
-                    semantic_features = self.pca.fit_transform(tfidf_features)
-                else:
-                    semantic_features = tfidf_features
-                    
-            except Exception as e:
-                logging.warning(f"Error en TF-IDF/PCA: {str(e)}")
-                semantic_features = np.array([[0]])  # Valor por defecto
+            # Vectorización TF-IDF
+            tfidf_features = vectorizer.fit_transform(text)
             
-            # Análisis de sentimiento
-            blob = TextBlob(text)
-            sentiment = {
-                "polarity": blob.sentiment.polarity,
-                "subjectivity": blob.sentiment.subjectivity
-            }
+            # Determinar número de componentes para PCA
+            n_components = min(
+                tfidf_features.shape[1],  # Número de características
+                tfidf_features.shape[0],  # Número de muestras
+                max(1, int(tfidf_features.shape[1] * 0.5))  # Máximo 50% de reducción
+            )
             
-            return {
-                "basic_analysis": basic_analysis,
-                "semantic_features": semantic_features.tolist(),
-                "sentiment": sentiment,
-                "language": detect(text),
-                "metadata": {
-                    "text_length": len(text),
-                    "processed_timestamp": datetime.now().isoformat()
-                }
-            }
+            # Aplicar PCA solo si hay suficientes componentes
+            if n_components > 1:
+                pca = PCA(n_components=n_components)
+                features_reduced = pca.fit_transform(tfidf_features.toarray())
+            else:
+                features_reduced = tfidf_features.toarray()
+            
+            return features_reduced, vectorizer
             
         except Exception as e:
-            logging.error(f"Error en análisis de texto: {str(e)}")
-            return None
+            logger.warning(f"Error en TF-IDF/PCA: {str(e)}")
+            # Retornar vector de ceros como fallback
+            return np.zeros((len(text), 1)), None
 
     def preprocess_audio_advanced(self, audio_path):
         """Preprocesamiento de audio mejorado con características emocionales"""
