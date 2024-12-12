@@ -24,6 +24,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 import soundfile as sf
 import threading
+import traceback
+from config import Config
 
 # Descargar recursos NLTK necesarios
 def download_nltk_resources():
@@ -202,12 +204,18 @@ class EmotionalFeatureExtractor:
 
 class AdvancedDataPreprocessor:
     def __init__(self, config=None):
+        """Inicializa el preprocesador con configuración"""
         self.config = config or {}
+        self.input_folders = self.config.get('data_paths', [])
+        
+        # Configuración de procesamiento
+        self.batch_size = self.config.get('batch_size', 32)
+        self.max_workers = self.config.get('max_workers', os.cpu_count() or 4)
+        
+        # Inicializar componentes NLP
         self.nlp = None
         self.stop_words = None
         self.pca = None
-        
-        # Inicializar vectorizador con parámetros más permisivos
         self.tfidf_vectorizer = TfidfVectorizer(
             min_df=1,
             max_df=1.0,
@@ -220,20 +228,21 @@ class AdvancedDataPreprocessor:
         self.processing_cache = {}
         self.cache_lock = threading.Lock()
         
-        # Configurar logging
-        self.setup_logging()
+        # Resultados
+        self.processed_data = []
         
         # Inicializar herramientas
         self.setup_tools()
-
+        
     def setup_tools(self):
-        """Inicialización mejorada de herramientas"""
+        """Inicializa herramientas de NLP"""
         try:
             # NLTK
-            nltk.download('punkt', quiet=True)
-            nltk.download('stopwords', quiet=True)
-            nltk.download('wordnet', quiet=True)
-            nltk.download('averaged_perceptron_tagger', quiet=True)
+            for resource in ['punkt', 'stopwords', 'wordnet', 'averaged_perceptron_tagger']:
+                try:
+                    nltk.download(resource, quiet=True)
+                except Exception as e:
+                    logging.warning(f"Error descargando {resource}: {e}")
             
             self.stop_words = set(stopwords.words('spanish') + stopwords.words('english'))
             
@@ -246,366 +255,157 @@ class AdvancedDataPreprocessor:
                 self.nlp = spacy.load('es_core_news_sm')
                 
         except Exception as e:
-            logging.error(f"Error en setup_tools: {str(e)}")
+            logging.error(f"Error en setup_tools: {e}")
             raise
-
-    def analyze_text(self, text, vectorizer=None):
-        try:
-            # Asegurar que el texto es una lista
-            if isinstance(text, str):
-                text = [text]
-            
-            # Si no hay vectorizador, crear uno nuevo
-            if vectorizer is None:
-                vectorizer = TfidfVectorizer(
-                    min_df=1,  # Reducido para manejar textos cortos
-                    max_df=1.0,  # Aumentado para ser más permisivo
-                    max_features=100  # Limitado para evitar dimensionalidad excesiva
-                )
-            
-            # Vectorización TF-IDF
-            tfidf_features = vectorizer.fit_transform(text)
-            
-            # Determinar número de componentes para PCA
-            n_components = min(
-                tfidf_features.shape[1],  # Número de características
-                tfidf_features.shape[0],  # Número de muestras
-                max(1, int(tfidf_features.shape[1] * 0.5))  # Máximo 50% de reducción
-            )
-            
-            # Aplicar PCA solo si hay suficientes componentes
-            if n_components > 1:
-                pca = PCA(n_components=n_components)
-                features_reduced = pca.fit_transform(tfidf_features.toarray())
-            else:
-                features_reduced = tfidf_features.toarray()
-            
-            return features_reduced, vectorizer
-            
-        except Exception as e:
-            logger.warning(f"Error en TF-IDF/PCA: {str(e)}")
-            # Retornar vector de ceros como fallback
-            return np.zeros((len(text), 1)), None
-
-    def preprocess_audio_advanced(self, audio_path):
-        """Preprocesamiento de audio mejorado con características emocionales"""
-        try:
-            # Características base
-            base_features = super().preprocess_audio_advanced(audio_path)
-            
-            # Características adicionales
-            y, sr = librosa.load(audio_path)
-            
-            emotional_features = {
-                "pitch_variations": librosa.feature.pitch(y=y, sr=sr),
-                "emotion_probability": self._analyze_audio_emotion(y, sr),
-                "voice_characteristics": self._extract_voice_features(y, sr),
-                "prosodic_features": self._analyze_prosody(y, sr)
-            }
-            
-            return {**base_features, "emotional_features": emotional_features}
-        except Exception as e:
-            logging.error(f"Error en preprocesamiento de audio: {str(e)}")
-            return None
-
-    def _analyze_context(self, text):
-        """Analiza el contexto y mantiene memoria contextual"""
-        # Implementación del análisis contextual
-        pass
-
-    def _extract_semantic_features(self, text):
-        """Extrae características semánticas profundas"""
-        # Implementación de extracción semántica
-        pass
-
-    def _identify_patterns(self, data):
-        """Identifica patrones adaptativos en los datos"""
-        # Implementación de identificación de patrones
-        pass
-
-    def preprocess_image_advanced(self, image_path):
-        """Preprocesamiento avanzado de imagen"""
-        try:
-            # Verificar caché
-            cached_result = self.cache_manager.get_cached(image_path)
-            if cached_result:
-                return cached_result
-
-            img = cv2.imread(image_path)
-            img = cv2.resize(img, (224, 224))
-            
-            # Preprocesamiento avanzado
-            features = {
-                "normalized": (img / 255.0).tolist(),
-                "edges": cv2.Canny(img, 100, 200).tolist(),
-                "histogram": cv2.calcHist([img], [0], None, [256], [0, 256]).tolist(),
-                "hsv": cv2.cvtColor(img, cv2.COLOR_BGR2HSV).tolist()
-            }
-            
-            # Guardar en caché
-            self.cache_manager.add_to_cache(image_path, features)
-            
-            return features
-        except Exception as e:
-            logging.error(f"Error en preprocesamiento de imagen: {str(e)}")
-            return None
-
-    def process_text_file(self, file_path):
-        """Procesamiento mejorado de archivos de texto con mejor manejo de errores"""
-        try:
-            # Verificar si el archivo existe
-            if not os.path.exists(file_path):
-                logging.warning(f"Archivo no encontrado: {file_path}")
-                return None
-
-            # Verificar tamaño del archivo
-            if os.path.getsize(file_path) == 0:
-                logging.warning(f"Archivo vacío: {file_path}")
-                return None
-
-            # Leer archivo con mejor manejo de codificación
-            text = None
-            for encoding in ['utf-8', 'latin-1', 'cp1252']:
-                try:
-                    with open(file_path, 'r', encoding=encoding) as f:
-                        text = f.read().strip()
-                    break
-                except UnicodeDecodeError:
-                    continue
-
-            if text is None:
-                logging.error(f"No se pudo decodificar el archivo: {file_path}")
-                return None
-
-            # Procesar el texto de manera segura
-            with self.cache_lock:
-                analysis = self.analyze_text(text)
-
-            if not analysis:
-                return None
-
-            processed_data = {
-                "file_path": file_path,
-                "file_name": os.path.basename(file_path),
-                "processed_date": self.config.CURRENT_DATE,
-                "analysis": analysis,
-                "metadata": {
-                    "file_size": os.path.getsize(file_path),
-                    "last_modified": datetime.fromtimestamp(
-                        os.path.getmtime(file_path)
-                    ).strftime("%Y-%m-%d %H:%M:%S"),
-                    "encoding_used": encoding
-                }
-            }
-
-            return processed_data
-
-        except Exception as e:
-            logging.error(f"Error procesando archivo {file_path}: {str(e)}", exc_info=True)
-            return None
 
     def process_files_parallel(self):
         """Procesa archivos en paralelo"""
-        with ThreadPoolExecutor() as executor:
+        try:
+            logging.info("Iniciando procesamiento de archivos...")
+            
             for input_folder in self.input_folders:
                 logging.info(f"Procesando carpeta: {input_folder}")
                 
-                for media_type in ["texto", "audio", "imagen"]:
-                    type_path = os.path.join(input_folder, media_type)
-                    if not os.path.exists(type_path):
-                        continue
-                    
-                    # Procesar archivos en paralelo
-                    files = [os.path.join(type_path, f) for f in os.listdir(type_path)]
-                    
-                    if media_type == "texto":
-                        futures = [executor.submit(self.process_text_file, f) for f in files]
-                    elif media_type == "audio":
-                        futures = [executor.submit(self.preprocess_audio_advanced, f) for f in files]
-                    else:  # imagen
-                        futures = [executor.submit(self.preprocess_image_advanced, f) for f in files]
+                # Obtener lista de archivos
+                files = self._get_files_to_process(input_folder)
+                
+                # Procesar en paralelo
+                with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                    futures = [executor.submit(self._process_file, file) for file in files]
                     
                     # Recolectar resultados
                     for future in futures:
                         try:
                             result = future.result()
                             if result:
-                                self.preprocessed_data[media_type].append(result)
+                                self.processed_data.extend(result)
                         except Exception as e:
-                            logging.error(f"Error en procesamiento paralelo: {str(e)}")
-
-    def save_preprocessed_data(self):
-        """Guarda datos preprocesados en múltiples formatos"""
-        try:
-            os.makedirs(self.config.CURRENT_PREPROCESSED_PATH, exist_ok=True)
-            output_base = os.path.join(self.config.CURRENT_PREPROCESSED_PATH, "preprocessed_data")
-
-            # Convertir datos a DataFrame
-            df_dict = {
-                'texto': pd.DataFrame(self.preprocessed_data["texto"]),
-                'audio': pd.DataFrame(self.preprocessed_data["audio"]),
-                'imagen': pd.DataFrame(self.preprocessed_data["imagen"])
-            }
-
-            # Guardar en diferentes formatos
-            for data_type, df in df_dict.items():
-                if not df.empty:
-                    # CSV
-                    csv_path = f"{output_base}_{data_type}.csv"
-                    df.to_csv(csv_path, index=False)
-                    logging.info(f"Datos guardados en CSV: {csv_path}")
-
-                    # Parquet
-                    parquet_path = f"{output_base}_{data_type}.parquet"
-                    df.to_parquet(parquet_path, index=False)
-                    logging.info(f"Datos guardados en Parquet: {parquet_path}")
-
-                    # JSON (con mejor formato)
-                    json_path = f"{output_base}_{data_type}.json"
-                    df.to_json(json_path, orient='records', indent=2)
-                    logging.info(f"Datos guardados en JSON: {json_path}")
-
-            # Guardar metadata
-            metadata_path = f"{output_base}_metadata.json"
-            with open(metadata_path, 'w', encoding='utf-8') as f:
-                json.dump(self.preprocessed_data["metadata"], f, ensure_ascii=False, indent=2)
-
-            logging.info(f"Preprocesamiento completado. Archivos guardados en: {self.config.CURRENT_PREPROCESSED_PATH}")
-
+                            logging.error(f"Error procesando archivo: {e}")
+            
+            return self.processed_data
+            
         except Exception as e:
-            logging.error(f"Error guardando datos preprocesados: {str(e)}", exc_info=True)
+            logging.error(f"Error en procesamiento paralelo: {e}")
             raise
 
-    def extract_multimodal_features(self, text, audio, image):
-        """Extrae características combinando múltiples modalidades"""
+    def _get_files_to_process(self, folder):
+        """Obtiene lista de archivos a procesar"""
+        files = []
+        for root, _, filenames in os.walk(folder):
+            for filename in filenames:
+                if filename.endswith(('.txt', '.json')):
+                    files.append(os.path.join(root, filename))
+        return files
+
+    def _process_file(self, file_path):
+        """Procesa un archivo individual"""
         try:
-            text_features = self.analyze_text(text)
-            audio_features = self.preprocess_audio_advanced(audio)
-            image_features = self.preprocess_image_advanced(image)
-            
-            # Fusión multimodal
-            return {
-                "combined_features": self._fusion_multimodal(
-                    text_features, 
-                    audio_features, 
-                    image_features
-                ),
-                "cross_modal_attention": self._calculate_cross_attention(
-                    text_features,
-                    audio_features,
-                    image_features
-                ),
-                "modal_correlations": self._analyze_modal_correlations(
-                    text_features,
-                    audio_features,
-                    image_features
-                )
-            }
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                
+            # Procesar según tipo de archivo
+            if file_path.endswith('.json'):
+                return self._process_json(content)
+            else:
+                return self._process_text(content)
+                
         except Exception as e:
-            logging.error(f"Error en extracción multimodal: {str(e)}")
+            logging.error(f"Error procesando {file_path}: {e}")
             return None
 
-    def _extract_deep_semantic_features(self, text):
-        """Extracción profunda de características semánticas"""
-        return {
-            "word2vec": self.word2vec_model.wv.vectors.tolist(),
-            "tfidf": self.tfidf_vectorizer.fit_transform([text]).toarray(),
-            "bert_embeddings": self._get_bert_embeddings(text),
-            "semantic_roles": self._extract_semantic_roles(text),
-            "topic_modeling": self._extract_topics(text),
-            "discourse_analysis": self._analyze_discourse(text)
-        }
+    def _process_json(self, content):
+        """Procesa contenido JSON"""
+        try:
+            data = json.loads(content)
+            # Implementar procesamiento específico para JSON
+            return [self._extract_features(item) for item in data]
+        except Exception as e:
+            logging.error(f"Error procesando JSON: {e}")
+            return None
 
-    def _analyze_audio_emotion(self, y, sr):
-        """Análisis emocional avanzado de audio"""
-        return {
-            "mfcc": librosa.feature.mfcc(y=y, sr=sr),
-            "spectral_contrast": librosa.feature.spectral_contrast(y=y, sr=sr),
-            "chroma": librosa.feature.chroma_stft(y=y, sr=sr),
-            "tempo": librosa.beat.tempo(y=y, sr=sr),
-            "onset_strength": librosa.onset.onset_strength(y=y, sr=sr),
-            "pitch_track": librosa.pitch_track(y=y, sr=sr)
-        }
+    def _process_text(self, content):
+        """Procesa contenido de texto"""
+        try:
+            # Preprocesar texto
+            processed_text = self.preprocess_text(content)
+            
+            # Extraer características
+            features = self._extract_features(processed_text)
+            
+            return [features]
+        except Exception as e:
+            logging.error(f"Error procesando texto: {e}")
+            return None
 
-    def _extract_advanced_image_features(self, image):
-        """Extracción avanzada de características de imagen"""
-        return {
-            "color_moments": self._calculate_color_moments(image),
-            "texture_features": self._extract_texture_features(image),
-            "shape_features": self._extract_shape_features(image),
-            "deep_features": self._extract_deep_cnn_features(image),
-            "spatial_relationships": self._analyze_spatial_relationships(image),
-            "object_detection": self._detect_objects(image)
-        }
+    def _extract_features(self, text):
+        """Extrae características del texto"""
+        try:
+            # Análisis de texto
+            features = self.analyze_text(text)
+            
+            return {
+                'text': text,
+                'features': features,
+                'timestamp': datetime.now().isoformat()
+            }
+        except Exception as e:
+            logging.error(f"Error extrayendo características: {e}")
+            return None
 
-    def _analyze_emotional_context(self, text):
-        """Análisis contextual emocional profundo"""
-        return {
-            "emotional_flow": self._track_emotional_flow(text),
-            "sentiment_transitions": self._analyze_sentiment_transitions(text),
-            "emotional_triggers": self._identify_emotional_triggers(text),
-            "contextual_emotions": self._analyze_contextual_emotions(text),
-            "emotional_intensity": self._calculate_emotional_intensity(text)
-        }
-
-    def _fusion_multimodal(self, text_features, audio_features, image_features):
-        """Fusión avanzada de características multimodales"""
-        # Implementar fusión de características
-        pass
-
-    def _calculate_cross_attention(self, text_features, audio_features, image_features):
-        """Cálculo de atención cruzada entre modalidades"""
-        # Implementar mecanismo de atención cruzada
-        pass
-
-    def _analyze_modal_correlations(self, text_features, audio_features, image_features):
-        """Análisis de correlaciones entre modalidades"""
-        # Implementar análisis de correlaciones
-        pass
-
-    def _get_bert_embeddings(self, text):
-        """Obtiene embeddings de BERT"""
-        # Implementar extracción de embeddings
-        pass
-
-    def _extract_semantic_roles(self, text):
-        """Extrae roles semánticos del texto"""
-        # Implementar extracción de roles semánticos
-        pass
-
-    def _analyze_discourse(self, text):
-        """Análisis del discurso"""
-        # Implementar análisis de discurso
-        pass
+    def save_results(self, output_dir):
+        """Guarda resultados procesados"""
+        try:
+            if not self.processed_data:
+                logging.warning("No hay datos para guardar")
+                return False
+                
+            # Crear DataFrame
+            df = pd.DataFrame(self.processed_data)
+            
+            # Guardar en diferentes formatos
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            base_path = os.path.join(output_dir, f"processed_data_{timestamp}")
+            
+            # CSV
+            df.to_csv(f"{base_path}.csv", index=False)
+            
+            # Pickle (para mantener tipos de datos complejos)
+            with open(f"{base_path}.pkl", 'wb') as f:
+                pickle.dump(self.processed_data, f)
+                
+            logging.info(f"Datos guardados en {output_dir}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Error guardando resultados: {e}")
+            return False
 
 def main():
-    """Función principal de ejecución"""
     try:
-        # Inicializar configuración
-        config = Config()
         logging.info("Iniciando preprocesamiento de datos...")
         
-        # Verificar estructura de carpetas
-        if not os.path.exists(config.DATA_BD_PATH):
-            logging.error(f"No se encuentra la carpeta de datos: {config.DATA_BD_PATH}")
-            return
-            
-        # Inicializar preprocesador
-        preprocessor = AdvancedDataPreprocessor([config.DATA_BD_PATH], config)
+        # Configuración
+        config_instance = Config()
+        preprocessor_config = {
+            'data_paths': [config_instance.DATA_BD_PATH],
+            'batch_size': 32,
+            'max_workers': os.cpu_count() or 4
+        }
         
-        # Procesar archivos
-        logging.info("Iniciando procesamiento de archivos...")
+        # Inicializar y ejecutar preprocesador
+        preprocessor = AdvancedDataPreprocessor(preprocessor_config)
         preprocessor.process_files_parallel()
         
         # Guardar resultados
-        logging.info("Guardando resultados...")
-        preprocessor.save_preprocessed_data()
+        preprocessor.save_results(config_instance.CURRENT_PREPROCESSED_PATH)
         
-        logging.info(f"Preprocesamiento completado. Resultados en: {config.CURRENT_PREPROCESSED_PATH}")
+        logging.info("Preprocesamiento completado exitosamente")
+        return True
         
     except Exception as e:
-        logging.error(f"Error en el preprocesamiento: {str(e)}")
-        raise
+        logging.error(f"Error en el preprocesamiento: {e}")
+        traceback.print_exc()
+        return False
 
 if __name__ == "__main__":
     main()
