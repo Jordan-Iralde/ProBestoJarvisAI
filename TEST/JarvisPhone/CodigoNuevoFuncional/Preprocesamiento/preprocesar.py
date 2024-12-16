@@ -207,33 +207,13 @@ class AdvancedDataPreprocessor:
         """Inicializa el preprocesador con configuración"""
         self.config = config or {}
         self.input_folders = self.config.get('data_paths', [])
-        
-        # Configuración de procesamiento
-        self.batch_size = self.config.get('batch_size', 32)
-        self.max_workers = self.config.get('max_workers', os.cpu_count() or 4)
-        
-        # Inicializar componentes NLP
+        self.vectorizer = TfidfVectorizer()
+        self.processed_data = None
         self.nlp = None
         self.stop_words = None
-        self.pca = None
-        self.tfidf_vectorizer = TfidfVectorizer(
-            min_df=1,
-            max_df=1.0,
-            max_features=100,
-            strip_accents='unicode',
-            lowercase=True
-        )
-        
-        # Cache thread-safe
-        self.processing_cache = {}
-        self.cache_lock = threading.Lock()
-        
-        # Resultados
-        self.processed_data = []
-        
-        # Inicializar herramientas
+        self.max_workers = os.cpu_count() or 4
         self.setup_tools()
-        
+
     def setup_tools(self):
         """Inicializa herramientas de NLP"""
         try:
@@ -257,6 +237,53 @@ class AdvancedDataPreprocessor:
         except Exception as e:
             logging.error(f"Error en setup_tools: {e}")
             raise
+        
+    def analyze_text(self, text):
+        """
+        Analiza y vectoriza el texto usando TF-IDF y PCA.
+        Retorna solo las características procesadas.
+        """
+        try:
+            # Preprocesar el texto
+            processed_text = self.preprocess_text(text)
+            
+            # Vectorización TF-IDF
+            tfidf_features = self.vectorizer.transform([processed_text])
+            
+            # Aplicar PCA si es necesario
+            if self.pca is not None:
+                features = self.pca.transform(tfidf_features.toarray())
+            else:
+                features = tfidf_features.toarray()
+            
+            return features
+            
+        except Exception as e:
+            logging.error(f"Error en análisis de texto: {str(e)}")
+            return None
+
+    def preprocess_text(self, text):
+        """
+        Preprocesa el texto aplicando varias técnicas de limpieza.
+        """
+        try:
+            # Convertir a minúsculas
+            text = text.lower()
+            # Eliminar caracteres especiales y números
+            text = re.sub(r'[^\w\s]', '', text)
+            text = re.sub(r'\d+', '', text)
+            # Tokenización y eliminación de stopwords
+            tokens = word_tokenize(text)
+            tokens = [token for token in tokens if token not in self.stop_words]
+            # Lematización usando spaCy
+            doc = self.nlp(' '.join(tokens))
+            lemmatized = [token.lemma_ for token in doc]
+            # Unir tokens procesados
+            processed_text = ' '.join(lemmatized)
+            return processed_text
+        except Exception as e:
+            logging.warning(f"Error en preprocesamiento de texto: {str(e)}")
+            return text
 
     def process_files_parallel(self):
         """Procesa archivos en paralelo"""
@@ -369,6 +396,9 @@ class AdvancedDataPreprocessor:
             # CSV
             df.to_csv(f"{base_path}.csv", index=False)
             
+            # Parquet
+            df.to_parquet(f"{base_path}.parquet", index=False)  # Guardar en formato Parquet
+            
             # Pickle (para mantener tipos de datos complejos)
             with open(f"{base_path}.pkl", 'wb') as f:
                 pickle.dump(self.processed_data, f)
@@ -379,6 +409,17 @@ class AdvancedDataPreprocessor:
         except Exception as e:
             logging.error(f"Error guardando resultados: {e}")
             return False
+
+    def fit_vectorizer(self, data):
+        """Ajusta el vectorizador con los datos proporcionados"""
+        self.vectorizer.fit(data)
+
+    def transform_data(self, data):
+        """Transforma los datos usando el vectorizador ajustado"""
+        if self.vectorizer:
+            self.processed_data = self.vectorizer.transform(data)
+        else:
+            raise ValueError("El vectorizador no está ajustado.")
 
 def main():
     try:
