@@ -54,6 +54,7 @@ class Config:
         self.DATA_BD_PATH = os.path.join(self.JARVIS_DATA_PATH, "databd")
         self.PREPROCESSED_PATH = os.path.join(self.JARVIS_DATA_PATH, "preprocessed")
         self.CACHE_PATH = os.path.join(self.JARVIS_DATA_PATH, "cache")
+        self.METRICS_PATH = r"C:\Users\yo\Desktop\jarvis_data\Metricas"
         
         # Fecha actual
         self.CURRENT_DATE = datetime.now().strftime("%Y-%m-%d")
@@ -113,7 +114,7 @@ class Config:
             logger.addHandler(file_handler)
             logger.addHandler(console_handler)
             
-            logging.info("Sistema de logging iniciado correctamente")
+            logging.info("Sistema de logging iniciado correctamente")\
             
         except Exception as e:
             print(f"Error configurando logging: {str(e)}")
@@ -223,9 +224,9 @@ class AdvancedDataPreprocessor:
                     nltk.download(resource, quiet=True)
                 except Exception as e:
                     logging.warning(f"Error descargando {resource}: {e}")
-            
+
             self.stop_words = set(stopwords.words('spanish') + stopwords.words('english'))
-            
+
             # spaCy
             try:
                 self.nlp = spacy.load('es_core_news_sm')
@@ -233,34 +234,24 @@ class AdvancedDataPreprocessor:
                 logging.warning("Descargando modelo de spaCy...")
                 os.system('python -m spacy download es_core_news_sm')
                 self.nlp = spacy.load('es_core_news_sm')
-                
+
+            # Ajustar vectorizador TF-IDF con datos iniciales
+            sample_texts = self._collect_sample_texts()
+            if sample_texts:
+                self.vectorizer.fit(sample_texts)
+            else:
+                logging.warning("No se encontraron textos de ejemplo para ajustar el vectorizador")
+
         except Exception as e:
             logging.error(f"Error en setup_tools: {e}")
             raise
+
         
     def analyze_text(self, text):
-        """
-        Analiza y vectoriza el texto usando TF-IDF y PCA.
-        Retorna solo las características procesadas.
-        """
-        try:
-            # Preprocesar el texto
-            processed_text = self.preprocess_text(text)
-            
-            # Vectorización TF-IDF
-            tfidf_features = self.vectorizer.transform([processed_text])
-            
-            # Aplicar PCA si es necesario
-            if self.pca is not None:
-                features = self.pca.transform(tfidf_features.toarray())
-            else:
-                features = tfidf_features.toarray()
-            
-            return features
-            
-        except Exception as e:
-            logging.error(f"Error en análisis de texto: {str(e)}")
-            return None
+        if not hasattr(self.vectorizer, 'vocabulary_'):
+            raise ValueError("El vectorizador TF-IDF no está ajustado.")
+        processed_text = self.preprocess_text(text)
+        return self.vectorizer.transform([processed_text])
 
     def preprocess_text(self, text):
         """
@@ -410,9 +401,13 @@ class AdvancedDataPreprocessor:
             logging.error(f"Error guardando resultados: {e}")
             return False
 
-    def fit_vectorizer(self, data):
-        """Ajusta el vectorizador con los datos proporcionados"""
-        self.vectorizer.fit(data)
+   
+
+    # Entrenar vectorizador antes de analizar
+    def fit_vectorizer(self, corpus):
+        """Ajusta el vectorizador con un corpus"""
+        self.vectorizer.fit(corpus)
+
 
     def transform_data(self, data):
         """Transforma los datos usando el vectorizador ajustado"""
@@ -421,28 +416,64 @@ class AdvancedDataPreprocessor:
         else:
             raise ValueError("El vectorizador no está ajustado.")
 
+    def validate_and_clean_data(self):
+        """Valida y limpia los datos antes de procesar"""
+        # Implementar validación y limpieza de datos
+        pass
+
+    def augment_data(self):
+        """Aplica técnicas de aumento de datos si es aplicable"""
+        # Implementar aumento de datos
+        pass
+
+    def save_metrics(self, metrics_path):
+        """Guarda métricas de preprocesamiento"""
+        # Implementar guardado de métricas
+        pass
+
 def main():
     try:
-        logging.info("Iniciando preprocesamiento de datos...")
-        
-        # Configuración
+        # Inicializar configuración
         config_instance = Config()
         preprocessor_config = {
             'data_paths': [config_instance.DATA_BD_PATH],
-            'batch_size': 32,
-            'max_workers': os.cpu_count() or 4
+            'batch_size': 64,  # Aumentar tamaño del lote si la memoria lo permite
+            'max_workers': os.cpu_count()  # Utilizar todas las CPU disponibles
         }
         
         # Inicializar y ejecutar preprocesador
         preprocessor = AdvancedDataPreprocessor(preprocessor_config)
+        
+        # Validar y limpiar datos antes de procesar
+        preprocessor.validate_and_clean_data()
+        
+        # Aplicar técnicas de aumento de datos si es aplicable
+        preprocessor.augment_data()
+            # Ajustar el vectorizador con los textos procesados
+        corpus = [preprocessor.preprocess_text(text) for text in raw_texts]
+        preprocessor.fit_vectorizer(corpus)
+        # Entrenar y transformar datos con TF-IDF
+        tfidf_vectorizer = TfidfVectorizer()
+        data = preprocessor.get_data()  # Método hipotético para obtener datos
+        tfidf_vectorizer.fit(data)
+        tfidf_matrix = tfidf_vectorizer.transform(data)
+        
+        # Procesar archivos en paralelo
         preprocessor.process_files_parallel()
         
         # Guardar resultados
         preprocessor.save_results(config_instance.CURRENT_PREPROCESSED_PATH)
         
+        # Guardar métricas de preprocesamiento
+        preprocessor.save_metrics(config_instance.METRICS_PATH)
+        
         logging.info("Preprocesamiento completado exitosamente")
         return True
         
+    except AttributeError as e:
+        logging.error(f"Error de atributo: {e}")
+        traceback.print_exc()
+        return False
     except Exception as e:
         logging.error(f"Error en el preprocesamiento: {e}")
         traceback.print_exc()

@@ -1,0 +1,3 @@
+https://api.stackexchange.com/
+https://developer.x.com/en/docs
+https://www.reddit.com/dev/api/
