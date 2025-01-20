@@ -88,6 +88,16 @@ def install_package(package_info):
     except Exception as e:
         return (dep, False, str(e))
 
+def ensure_pip_and_setuptools():
+    """Asegura que pip y setuptools estén instalados"""
+    try:
+        subprocess.check_call([sys.executable, "-m", "ensurepip", "--upgrade"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "setuptools"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"❌ Error asegurando pip y setuptools: {e}")
+        sys.exit(1)
+
 def install_dependencies(deps):
     """Instala las dependencias en paralelo"""
     installed_packages = check_installed_packages()
@@ -160,11 +170,9 @@ def main():
     try:
         os.makedirs('logs', exist_ok=True)
         
-        # Actualizar pip
-        print("\nActualizando pip...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"],
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL)
+        # Asegurar que pip y setuptools estén instalados
+        print("\nAsegurando que pip y setuptools estén instalados...")
+        ensure_pip_and_setuptools()
         
         # Instalación paralela de dependencias
         install_dependencies(dependencies)
@@ -182,4 +190,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-#Ejecuta este script desde tu terminal para instalar automáticamente todas las dependencias.

@@ -4,14 +4,9 @@ import threading
 import requests
 from bs4 import BeautifulSoup
 import pymongo
-import json
 import os
-import subprocess
-import sys
-from pathlib import Path
 import logging
 from dotenv import load_dotenv
-import random
 from itertools import combinations
 import time
 
@@ -35,7 +30,7 @@ def get_mongo_client():
 
 mongo_client = get_mongo_client()
 db = mongo_client["JarvisAI"]
-collection = db["prueba"]
+collection = db["honey"]
 
 # Archivo de palabras
 WORDS_FILE = 'spanish_words.txt'
@@ -45,6 +40,7 @@ def load_spanish_words(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             words = file.read().splitlines()
+        logging.info(f"{len(words)} palabras cargadas desde el archivo.")
         return words
     except FileNotFoundError:
         logging.error("El archivo de palabras no se encontró.")
@@ -56,28 +52,30 @@ def save_new_words(new_words):
         with open(WORDS_FILE, 'a', encoding='utf-8') as file:
             for word in new_words:
                 file.write(word + '\n')
-        logging.info("Nuevas palabras añadidas a spanish_words.txt")
+        logging.info(f"{len(new_words)} nuevas palabras añadidas a spanish_words.txt.")
     except Exception as e:
         logging.error(f"Error al guardar palabras en el archivo: {e}")
 
 def generate_search_queries(words, max_length=5):
-    """Genera combinaciones de palabras para formar oraciones."""
-    queries = []
+    """Genera combinaciones de palabras para formar oraciones bajo demanda."""
     for length in range(1, max_length + 1):
-        queries.extend([' '.join(comb) for comb in combinations(words, length)])
-    return queries
+        for comb in combinations(words, length):
+            query = ' '.join(comb)
+            yield query
 
 def fetch_web_content(query):
     """Realiza una búsqueda en la web y devuelve el contenido."""
     session = requests.Session()
     try:
-        search_url = f"https://www.google.com/search?q={query}"
+        # Usamos DuckDuckGo para evitar restricciones de Google
+        search_url = f"https://duckduckgo.com/html/?q={query}"
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         response = session.get(search_url, headers=headers, timeout=30)
         soup = BeautifulSoup(response.text, 'html.parser')
-        results = [result.get_text() for result in soup.find_all('h3')]
+        results = [result.get_text() for result in soup.find_all('a', {'class': 'result__a'})]
+        logging.info(f"Se encontraron {len(results)} resultados para la consulta: {query}")
         return results
     except requests.RequestException as e:
         logging.error(f"Error al buscar el contenido para '{query}': {e}")
@@ -121,8 +119,7 @@ class SearchApp(tk.Tk):
         """Búsqueda continua que extrae, guarda y actualiza palabras clave indefinidamente."""
         words = load_spanish_words(WORDS_FILE)
         while True:
-            queries = generate_search_queries(words)
-            for query in queries:
+            for query in generate_search_queries(words):
                 results = fetch_web_content(query)
                 if results:
                     new_keywords = extract_keywords(results)
