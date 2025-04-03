@@ -63,12 +63,12 @@ Consulta la documentación completa para obtener más detalles y orientación t�
 
 ---
 
-## **🚧 Estado Actual**
-El proyecto se encuentra en **fase de desarrollo activo**. Las funcionalidades básicas ya están implementadas y ahora se está trabajando en la integración de capacidades avanzadas. ¡Mantente atento a las actualizaciones!
-
+## **🚧 Estado Actual Pausado**
+El proyecto se encuentra en **Pausa**. 
 ---
 
 ## **🌐 Licencia**
 Este proyecto está licenciado bajo la **Licencia MIT**.
 
-Visita la pagina de Jarvis: https://jordan-iralde.github.io/ProBestoJarvisAI/
+Visita la pagina de Jarvis (En desarrollo) : https://jordan-iralde.github.io/ProBestoJarvisAI/ 
+
