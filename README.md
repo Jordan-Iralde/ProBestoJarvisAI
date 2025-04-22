@@ -1,6 +1,5 @@
 # 🌐 **JARVIS**
 
-Proyecto con Floyd Machine: https://github.com/GiovanniPeirone/Floyd-Machine
 ## **Descripción General**
 Bienvenido al proyecto de **JARVIS**, una IA, hecha para aprender, adaptarse y optimizarse de manera totalmente autónoma. Nuestro objetivo es crear un sistema que no solo automatice tareas complejas, sino que también evolucione en tiempo real, integrando tecnologías avanzadas como el **reconocimiento facial**, la **clonación de voz** y la **optimización dinámica de recursos**.
 
