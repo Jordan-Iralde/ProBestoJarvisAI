@@ -1,0 +1,36 @@
+/mi-ia/
+│
+├── core/                        # Núcleo lógico
+│   ├── engine.py               # Manejador central del flujo de la IA
+│   ├── dispatcher.py           # Enrutador de tareas por función
+│   └── utils.py                # Funciones auxiliares generales
+│
+├── modules/                    # Módulos por función de la IA
+│   ├── asistente_virtual/
+│   │   ├── __init__.py
+│   │   ├── chat.py             # Conversación básica
+│   │   └── tareas.py           # Gestión de tareas o recordatorios
+│   │
+│   ├── atencion_cliente/
+│   │   ├── __init__.py
+│   │   ├── precios.py
+│   │   └── turnos.py
+│   │
+│   ├── reconocimiento_voz/
+│   │   ├── __init__.py
+│   │   ├── audio_input.py
+│   │   └── transcripcion.py
+│   │
+│   └── analisis_datos/
+│       ├── __init__.py
+│       ├── excel_parser.py
+│       └── analytics.py
+│
+├── config/                     # Configuración y claves API
+│   ├── settings.py
+│   └── secrets.json
+│
+├── tests/                      # Pruebas unitarias por módulo
+│
+├── main.py                     # Punto de entrada del programa
+└── requirements.txt            # Dependencias
