@@ -9,22 +9,13 @@
 │   ├── asistente_virtual/
 │   │   ├── __init__.py
 │   │   ├── chat.py             # Conversación básica
-│   │   └── tareas.py           # Gestión de tareas o recordatorios
-│   │
-│   ├── atencion_cliente/
-│   │   ├── __init__.py
-│   │   ├── precios.py
-│   │   └── turnos.py
+│   │   └── tareas.py           # Gestión de tareas o recordatorios│
 │   │
 │   ├── reconocimiento_voz/
 │   │   ├── __init__.py
 │   │   ├── audio_input.py
 │   │   └── transcripcion.py
-│   │
-│   └── analisis_datos/
-│       ├── __init__.py
-│       ├── excel_parser.py
-│       └── analytics.py
+
 │
 ├── config/                     # Configuración y claves API
 │   ├── settings.py
