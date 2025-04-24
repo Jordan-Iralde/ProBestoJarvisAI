@@ -1,2 +1,0 @@
-2024-09-21 18:24:49,437 - ERROR - Error loading and preparing data: [Errno 2] No such file or directory: 'C:\\Users\\yo\\Desktop\\Test\\JarvisPhone\\data\\titanic.csv'
-2024-09-21 18:24:49,437 - ERROR - Data preparation failed. Exiting training.
