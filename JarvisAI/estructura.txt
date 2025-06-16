@@ -1,4 +1,4 @@
-/mi-ia/
+/jarvis/
 │
 ├── core/                        # Núcleo lógico
 │   ├── engine.py               # Manejador central del flujo de la IA
@@ -12,7 +12,7 @@
 │   │   └── tareas.py           # Gestión de tareas o recordatorios│
 │   │
 │   ├── reconocimiento_voz/
-│   │   ├── __init__.py
+│   │   ├── voz_a_texto.py
 │   │   ├── audio_input.py
 │   │   └── transcripcion.py
 
