@@ -6,7 +6,7 @@ from PIL import Image, ImageTk
 # Importar lógica central
 from core.engine import procesar_comando
 from modules.vision_computadora.deteccion_objetos import detectar_objetos
-from modules.reconocimiento_voz.voz_a_texto import capturar_voz
+from modules.reconocimiento_voz.voz_a_texto import capturar_voz, escribir_texto
 
 # Inicializar ventana
 ventana = tk.Tk()
@@ -50,6 +50,11 @@ def escuchar_voz():
             texto_voz.set(f"🗣️ Vos: {texto}")
             respuesta = procesar_comando(texto)
             respuesta_jarvis.set(f"🤖 Jarvis: {respuesta}")
+        if not texto:
+            texto = escribir_texto()
+            respuesta = procesar_comando(texto)
+            respuesta_jarvis.set(f"🤖 Jarvis: {respuesta}")
+
 
 # Lanzar hilos
 Thread(target=escuchar_voz, daemon=True).start()
