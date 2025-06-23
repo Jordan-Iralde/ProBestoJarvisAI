@@ -2,7 +2,6 @@
 │
 ├── core/                        # Núcleo lógico
 │   ├── engine.py               # Manejador central del flujo de la IA
-│   ├── logger.py
 │   ├── dispatcher.py           # Enrutador de tareas por función
 │   └── utils.py                # Funciones auxiliares generales
 │
