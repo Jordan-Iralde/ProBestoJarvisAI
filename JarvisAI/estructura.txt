@@ -2,13 +2,10 @@
 │
 ├── core/                        # Núcleo lógico
 │   ├── engine.py               # Manejador central del flujo de la IA
-│   ├── logger.py
 │   ├── dispatcher.py           # Enrutador de tareas por función
 │   └── utils.py                # Funciones auxiliares generales
 │
-├── interfaces/                    # Módulos por función de la IA
-│   ├── api/
-│   │   └── main.py
+├── interfaces/                   
 │   ├── cli/
 │   │   └── interface.py
 │   ├── gui/
@@ -16,22 +13,12 @@
 │   │   └── widgets.py
 │
 ├── modules/                    # Módulos por función de la IA
-│   ├── asistente_virtual/
-│   │   ├── __init__.py
-│   │   ├── chat.py             # Conversación básica
-│   │   └── tareas.py           # Gestión de tareas o recordatorios│
-│   │
 │   ├── reconocimiento_voz/
 │   │   ├── voz_a_texto.py
 │   │   ├── audio_input.py
 │   │   └── transcripcion.py
-
-│
-├── config/                     # Configuración y claves API
-│   ├── settings.py
-│   └── secrets.json
-│
-├── tests/                      # Pruebas unitarias por módulo
+│   ├── voz_jarvis/
+│   │   └── virtual_voice.py
 │
 ├── main.py                     # Punto de entrada del programa
 └── requirements.txt            # Dependencias

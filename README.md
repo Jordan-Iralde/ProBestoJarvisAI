@@ -62,7 +62,7 @@ Consulta la documentación completa para obtener más detalles y orientación t�
 
 ---
 
-## ** >>> Estado Actual Desarrollo**
+## **  >>> Estado Actual Desarrollo**
 El proyecto se encuentra en **Desarrollo**. 
 ---
 
