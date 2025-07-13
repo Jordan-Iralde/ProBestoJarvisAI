@@ -7,7 +7,7 @@ def escribir_texto():
     return comando
 
 def capturar_voz(timeout=3, phrase_time_limit=10, idioma="es-AR"):
-    if p == 0:
+    if p != 0:
         """Captura audio y lo convierte a texto. Retorna string o '' si falla."""
         r = sr.Recognizer()
         with sr.Microphone() as source:

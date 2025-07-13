@@ -1,44 +1,47 @@
 # main.py
 
 import sys
-import cv2
-import speech_recognition as sr
+from core.utils import (
+    full_environment_diagnostic,
+    get_logger,
+    check_camera_available,
+    check_microphone_available,
+)
 from interfaces.cli.interface import iniciar_cli
 from interfaces.gui.app import iniciar_gui
-def hay_microfono():
-    try:
-        mic = sr.Microphone()
-        print("Probando el micrófono...")
-        return True
-    except OSError:
-        return False
+from core.config_manager import ConfigManager
+from core.terms import TermsManager
 
-def hay_camara():
-    cap = cv2.VideoCapture(0)
-    print("Probando la cámara...")
-    if not cap.isOpened():
-        return False
-    cap.release()
-    return True
+log = get_logger("main")
+
+def choose_mode():
+    """Decide CLI vs GUI según args o hardware."""
+    if len(sys.argv) > 1:
+        modo = sys.argv[1].lower()
+        return modo == "cli"
+    tiene_mic = check_microphone_available()
+    tiene_cam = check_camera_available()
+    return not (tiene_mic or tiene_cam)
 
 if __name__ == "__main__":
-    usar_cli = False
+    log.info("=== Iniciando JarvisAI ===")
+    # 1. Términos de uso: mostrar y solicitar aceptación
+    terms = TermsManager()
+    if not terms.has_accepted():
+        terms.prompt_acceptance()
 
-    # Si se pasa por argumento, respetar el modo
-    if len(sys.argv) > 1:
-        modo = sys.argv[1]
-        usar_cli = (modo == "cli")
-    else:
-        # Auto detección
-        tiene_microfono = hay_microfono()
-        tiene_camara = hay_camara()
-        usar_cli = not (tiene_microfono or tiene_camara)
+    # 2. Diagnóstico del entorno
+    diag = full_environment_diagnostic()
+    log.info(f"Diagnóstico: {diag}")
 
+    # 3. Cargar o inicializar configuración local
+    config = ConfigManager().load_or_init()
+
+    # 4. Elegir modo de interfaz
+    usar_cli = choose_mode()
     if usar_cli:
-        print("Usando modo CLI (sin cámara ni micrófono)")
+        log.info("Usando modo CLI")
         iniciar_cli()
-        
     else:
-        print("Usando modo GUI (con cámara y micrófono)")
+        log.info("Usando modo GUI")
         iniciar_gui()
-        

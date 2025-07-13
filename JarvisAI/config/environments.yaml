@@ -1,0 +1,19 @@
+# config/environment.yaml
+
+dev:
+  debug: true
+  voice_enabled: true
+  log_dir: logs/
+  gui_theme: dark
+  language: es
+  transcription_engine: whisper
+  tts_engine: pyttsx3
+
+prod:
+  debug: false
+  voice_enabled: true
+  log_dir: /var/log/jarvis/
+  gui_theme: light
+  language: es
+  transcription_engine: whisper
+  tts_engine: elevenlabs
