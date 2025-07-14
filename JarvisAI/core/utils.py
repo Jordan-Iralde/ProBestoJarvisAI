@@ -9,12 +9,32 @@ import shutil
 import socket
 from datetime import datetime
 from config.settings import config
+from core.config_manager import ConfigManager
 
+# ----------------------------------------
+# 🔐 Actualizar configuraciones
+# ----------------------------------------
+def update_local_config(updates: dict):
+    """
+    Carga la configuración local cifrada,
+    actualiza con el diccionario 'updates',
+    y guarda los cambios.
+
+    Devuelve la config actualizada (dict).
+    """
+    cfg_mgr = ConfigManager()
+    local_config = cfg_mgr.load_or_init()
+    local_config.update(updates)
+    cfg_mgr.save(local_config)
+    return local_config
 
 # ----------------------------------------
 # 🔐 Logger por módulo
 # ----------------------------------------
 def get_logger(name: str):
+    if not os.path.exists(config.LOG_DIR):
+        os.makedirs(config.LOG_DIR)
+
     log_path = os.path.join(config.LOG_DIR, f"{name}.log")
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG if config.debug else logging.INFO)
@@ -32,7 +52,7 @@ def get_logger(name: str):
 # 📜 Cargar manifiesto ético
 # ----------------------------------------
 def get_ethics_manifest():
-    ethics_path = "docs/usage.md"
+    ethics_path = "JarvisAI/docs/usage.md"
     try:
         with open(ethics_path, "r", encoding="utf-8") as f:
             return f.read()

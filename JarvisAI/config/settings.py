@@ -38,6 +38,16 @@ class Settings:
 
         # Flags varios
         self.voice_enabled = self.settings.get("voice_enabled", True)
+        dc = self.settings.get("data_collection", {})
+        
+        self.dc_enabled        = dc.get("enabled", False)
+        self.dc_interval       = dc.get("interval_sec", 60)
+        self.dc_metrics        = dc.get("metrics", [])
+
+        fl = self.settings.get("forced_load", {})
+        self.fl_enabled        = fl.get("enabled", False)
+        self.fl_cpu_percent    = fl.get("cpu_load_percent", 0)
+        self.fl_mem_mb         = fl.get("mem_load_mb", 0)
 
 # Singleton
 config = Settings()
