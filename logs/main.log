@@ -1,3 +1,0 @@
-2025-07-13 18:14:45,229 - INFO - === Iniciando JarvisAI ===
-2025-07-13 18:15:01,802 - INFO - Diagnóstico: {'SO': 'Windows', 'Version': '10.0.19045', 'Python': '3.13.3', 'Cámara disponible': True, 'Micrófono disponible': True, 'Espacio libre (GB)': 245}
-2025-07-13 18:15:01,807 - INFO - Usando modo GUI

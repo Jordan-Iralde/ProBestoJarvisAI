@@ -30,10 +30,10 @@ class Settings:
 
         # Claves
         self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-        self.DB_URI          = os.getenv("MONGO_URI")
+        self.DB_URI          = os.getenv("mongodb+srv://iraldejordan10:r5dcxq5RHNDrxt69@jarviscluster.et2fo.mongodb.net/")
 
         # Directorio de logs
-        self.LOG_DIR = self.settings.get("log_dir", "logs/")
+        self.LOG_DIR = self.settings.get("log_dir", "data/logs/")
         os.makedirs(self.LOG_DIR, exist_ok=True)
 
         # Flags varios

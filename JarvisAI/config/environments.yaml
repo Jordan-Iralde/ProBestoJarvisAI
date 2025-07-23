@@ -21,11 +21,6 @@ dev:
       - error_log
       - ambient_noise
 
-  # → NUEVO BLOQUE de Forced Load
-  forced_load:
-    enabled: true            # forzar uso extra
-    cpu_load_percent: 50     # consumir +20% de CPU en idle
-    mem_load_mb: 100         # retener +100 MB en idle
 
 prod:
   debug: false
