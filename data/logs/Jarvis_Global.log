@@ -1,0 +1,54 @@
+2025-10-22 20:56:12,196 | INFO | VozJarvis | [TTS] Iniciando worker thread...
+2025-10-22 20:56:12,196 | INFO | VozJarvis | [TTS] Worker thread iniciado
+2025-10-22 20:56:12,345 | INFO | VozJarvis | [TTS] Voz seleccionada: Microsoft Helena Desktop - Spanish (Spain)
+2025-10-22 20:56:12,345 | INFO | VozJarvis | [TTS] Worker y engine listos
+2025-10-22 20:56:12,345 | INFO | VozJarvis | [TTS] Engine inicializado con voz: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_ES-ES_HELENA_11.0
+2025-10-22 20:56:12,345 | INFO | VozJarvis | [TTS] Enqueue: Hola .
+2025-10-22 20:56:12,346 | INFO | VozJarvis | [TTS] Enqueue: Mensaje  .
+2025-10-22 20:56:12,346 | INFO | VozJarvis | [TTS] Procesando: Hola .
+2025-10-22 20:56:12,346 | INFO | VozJarvis | [TTS] Enqueue: Y este es .
+2025-10-22 20:56:13,588 | INFO | VozJarvis | [TTS] Reproducción completada: Hola .
+2025-10-22 20:56:13,639 | INFO | VozJarvis | [TTS] Procesando: Mensaje  .
+2025-10-22 20:56:13,708 | INFO | VozJarvis | [TTS] Reproducción completada: Mensaje  .
+2025-10-22 20:56:13,759 | INFO | VozJarvis | [TTS] Procesando: Y este es .
+2025-10-22 20:56:13,825 | INFO | VozJarvis | [TTS] Reproducción completada: Y este es .
+2025-10-22 20:56:20,347 | INFO | VozJarvis | [TTS] Shutdown solicitado
+2025-10-22 20:56:20,348 | INFO | VozJarvis | [TTS] Esperando que el worker termine...
+2025-10-22 20:56:20,348 | INFO | VozJarvis | [TTS] Engine detenido al cerrar worker
+2025-10-22 20:56:20,352 | INFO | VozJarvis | [TTS] Shutdown completo
+2025-10-22 20:58:45,878 | INFO | VozJarvis | [TTS] Worker thread iniciado
+2025-10-22 20:58:46,027 | INFO | VozJarvis | [TTS] Voz seleccionada: Microsoft Helena Desktop - Spanish (Spain)
+2025-10-22 20:58:46,027 | INFO | VozJarvis | [TTS] Engine inicializado con voz: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_ES-ES_HELENA_11.0
+2025-10-22 20:59:09,607 | INFO | VozJarvis | [TTS] Iniciando worker thread...
+2025-10-22 20:59:09,609 | INFO | VozJarvis | [TTS] Worker thread iniciado
+2025-10-22 20:59:09,752 | INFO | VozJarvis | [TTS] Voz seleccionada: Microsoft Helena Desktop - Spanish (Spain)
+2025-10-22 20:59:09,752 | INFO | VozJarvis | [TTS] Worker y engine listos
+2025-10-22 20:59:09,752 | INFO | VozJarvis | [TTS] Engine inicializado con voz: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_ES-ES_HELENA_11.0
+2025-10-22 20:59:09,753 | INFO | VozJarvis | [TTS] Enqueue: clima
+2025-10-22 20:59:09,753 | INFO | VozJarvis | [TTS] Procesando: clima
+2025-10-22 20:59:11,252 | INFO | VozJarvis | [TTS] Reproducción completada: clima
+2025-10-22 20:59:16,321 | INFO | Main | === Iniciando Jarvis ===
+2025-10-22 20:59:16,321 | INFO | Dispatcher | Skills folder ready at: C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills
+2025-10-22 20:59:16,323 | INFO | Dispatcher | Loaded skill: Clima
+2025-10-22 20:59:16,324 | WARNING | Dispatcher | Missing skill.json in C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills\testskill, skipping.
+2025-10-22 20:59:18,381 | INFO | Dispatcher | Executing skill: Clima
+2025-10-22 20:59:18,382 | INFO | SkillClima | SkillClima ejecutado con input: clima
+2025-10-22 20:59:18,382 | DEBUG | SkillClima | Resultado: Hace 25°C y soleado
+2025-10-22 20:59:18,382 | INFO | Main | Respuesta a comando: Hace 25°C y soleado
+2025-10-22 20:59:18,382 | ERROR | Main | Error shutting down virtual_voice
+Traceback (most recent call last):
+  File "c:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAI\main.py", line 29, in main_loop
+    procesar_comando(comando)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "c:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAI\main.py", line 20, in procesar_comando
+    virtual_voice.hablar(respuesta)
+    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'modules.voz_jarvis.virtual_voice' has no attribute 'hablar'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAI\main.py", line 35, in main_loop
+    virtual_voice.shutdown()
+    ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'modules.voz_jarvis.virtual_voice' has no attribute 'shutdown'

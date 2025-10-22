@@ -4,6 +4,7 @@
 │   ├── engine.py               # Motor principal que orquesta JAR y VIS
 │   ├── dispatcher.py           # Enrutador de tareas/comandos a módulos
 │   ├── config.py               # Configuración global, variables, rutas
+│   ├── logger.py               # Modulo de logging para todo el proyecto
 │   └── utils.py                # Funciones utilitarias
 │
 ├── jar/                        # JAR: Lenguaje natural (NLP)

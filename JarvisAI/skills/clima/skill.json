@@ -1,0 +1,5 @@
+{
+  "name": "Clima",
+  "keywords": ["clima", "temperatura", "weather"],
+  "description": "Obtiene el clima actual"
+}

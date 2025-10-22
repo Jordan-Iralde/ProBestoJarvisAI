@@ -1,0 +1,29 @@
+2025-10-22 20:56:12,196 | INFO | VozJarvis | [TTS] Iniciando worker thread...
+2025-10-22 20:56:12,196 | INFO | VozJarvis | [TTS] Worker thread iniciado
+2025-10-22 20:56:12,345 | INFO | VozJarvis | [TTS] Voz seleccionada: Microsoft Helena Desktop - Spanish (Spain)
+2025-10-22 20:56:12,345 | INFO | VozJarvis | [TTS] Worker y engine listos
+2025-10-22 20:56:12,345 | INFO | VozJarvis | [TTS] Engine inicializado con voz: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_ES-ES_HELENA_11.0
+2025-10-22 20:56:12,345 | INFO | VozJarvis | [TTS] Enqueue: Hola .
+2025-10-22 20:56:12,346 | INFO | VozJarvis | [TTS] Enqueue: Mensaje  .
+2025-10-22 20:56:12,346 | INFO | VozJarvis | [TTS] Procesando: Hola .
+2025-10-22 20:56:12,346 | INFO | VozJarvis | [TTS] Enqueue: Y este es .
+2025-10-22 20:56:13,588 | INFO | VozJarvis | [TTS] Reproducción completada: Hola .
+2025-10-22 20:56:13,639 | INFO | VozJarvis | [TTS] Procesando: Mensaje  .
+2025-10-22 20:56:13,708 | INFO | VozJarvis | [TTS] Reproducción completada: Mensaje  .
+2025-10-22 20:56:13,759 | INFO | VozJarvis | [TTS] Procesando: Y este es .
+2025-10-22 20:56:13,825 | INFO | VozJarvis | [TTS] Reproducción completada: Y este es .
+2025-10-22 20:56:20,347 | INFO | VozJarvis | [TTS] Shutdown solicitado
+2025-10-22 20:56:20,348 | INFO | VozJarvis | [TTS] Esperando que el worker termine...
+2025-10-22 20:56:20,348 | INFO | VozJarvis | [TTS] Engine detenido al cerrar worker
+2025-10-22 20:56:20,352 | INFO | VozJarvis | [TTS] Shutdown completo
+2025-10-22 20:58:45,878 | INFO | VozJarvis | [TTS] Worker thread iniciado
+2025-10-22 20:58:46,027 | INFO | VozJarvis | [TTS] Voz seleccionada: Microsoft Helena Desktop - Spanish (Spain)
+2025-10-22 20:58:46,027 | INFO | VozJarvis | [TTS] Engine inicializado con voz: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_ES-ES_HELENA_11.0
+2025-10-22 20:59:09,607 | INFO | VozJarvis | [TTS] Iniciando worker thread...
+2025-10-22 20:59:09,609 | INFO | VozJarvis | [TTS] Worker thread iniciado
+2025-10-22 20:59:09,752 | INFO | VozJarvis | [TTS] Voz seleccionada: Microsoft Helena Desktop - Spanish (Spain)
+2025-10-22 20:59:09,752 | INFO | VozJarvis | [TTS] Worker y engine listos
+2025-10-22 20:59:09,752 | INFO | VozJarvis | [TTS] Engine inicializado con voz: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_ES-ES_HELENA_11.0
+2025-10-22 20:59:09,753 | INFO | VozJarvis | [TTS] Enqueue: clima
+2025-10-22 20:59:09,753 | INFO | VozJarvis | [TTS] Procesando: clima
+2025-10-22 20:59:11,252 | INFO | VozJarvis | [TTS] Reproducción completada: clima
