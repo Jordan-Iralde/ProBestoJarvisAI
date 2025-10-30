@@ -2,3 +2,11 @@
 2025-10-22 20:59:16,323 | INFO | Dispatcher | Loaded skill: Clima
 2025-10-22 20:59:16,324 | WARNING | Dispatcher | Missing skill.json in C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills\testskill, skipping.
 2025-10-22 20:59:18,381 | INFO | Dispatcher | Executing skill: Clima
+2025-10-22 21:16:07,370 | INFO | Dispatcher | Skills folder ready at: C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills
+2025-10-22 21:16:07,372 | INFO | Dispatcher | Loaded skill: Clima
+2025-10-22 21:16:07,374 | WARNING | Dispatcher | Missing skill.json in C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills\testskill, skipping.
+2025-10-22 21:16:10,382 | WARNING | Dispatcher | No skill found for: l
+2025-10-22 21:21:12,568 | INFO | Dispatcher | Skills folder ready at: C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills
+2025-10-22 21:21:12,570 | INFO | Dispatcher | Loaded skill: Clima
+2025-10-22 21:21:12,570 | WARNING | Dispatcher | Missing skill.json in C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills\testskill, skipping.
+2025-10-22 21:21:19,484 | INFO | Dispatcher | Executing skill: Clima

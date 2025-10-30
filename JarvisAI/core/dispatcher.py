@@ -15,12 +15,20 @@ class Dispatcher:
 
         self.load_skills(self.skills_path)
 
+<<<<<<< Updated upstream
     def load_skills(self, path):
         for skill_folder in os.listdir(path):
             folder_path = os.path.join(path, skill_folder)
 
             if not os.path.isdir(folder_path):
                 continue
+=======
+    elif "abrir" in texto:
+        return sistema.abrir_aplicacion(texto)
+    
+    elif "jarvis" in texto:
+        return "Que quieres."
+>>>>>>> Stashed changes
 
             try:
                 skill_json_path = os.path.join(folder_path, "skill.json")

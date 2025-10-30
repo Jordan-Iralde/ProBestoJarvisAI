@@ -1,17 +1,38 @@
+import time
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from modules.voz_jarvis.virtual_voice import VozJarvis, virtual_voice
 
-from modules.voz_jarvis.virtual_voice import virtual_voice
-import time
 
-print("== Test TTS Queue ==")
+def main():
+    print("=== Test TTS Main Thread ===")
+    
+    # Mensajes rápidos para probar la cola
+    mensajes = [
+        "Hola Jordan, probando voz número uno.",
+        "Mensaje número dos en cola.",
+        "Y este es el tercero, asegurando orden.",
+        "Prueba de interrupción rápida."
+    ]
+    
+    # Encolar todos los mensajes
+    for m in mensajes:
+        virtual_voice.hablar(m)
+        time.sleep(0.05)  # simulamos llamadas rápidas desde threads distintos
 
-virtual_voice.hablar("Hola .")
-virtual_voice.hablar("Mensaje  .")
-virtual_voice.hablar("Y este es .")
+    # Test de interrupción
+    virtual_voice.hablar_interrupt("Interrupción: esto debe sonar inmediatamente.")
 
-time.sleep(8)  # espera que hable todo
-virtual_voice.shutdown()
+    # Procesamos mensajes en el main thread
+    # Llamamos varias veces para simular loop del main
+    for _ in range(20):
+        virtual_voice.process_tts(block=False, max_messages=5)
+        time.sleep(0.1)
 
-print("== Test Finalizado ==")
+    # Cierre seguropython -m tests.test
+
+    virtual_voice.shutdown()
+
+if __name__ == "__main__":
+    main()

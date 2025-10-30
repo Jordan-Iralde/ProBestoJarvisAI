@@ -52,3 +52,104 @@ Traceback (most recent call last):
     virtual_voice.shutdown()
     ^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: module 'modules.voz_jarvis.virtual_voice' has no attribute 'shutdown'
+2025-10-22 21:16:07,370 | INFO | Main | === Iniciando Jarvis ===
+2025-10-22 21:16:07,370 | INFO | Dispatcher | Skills folder ready at: C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills
+2025-10-22 21:16:07,372 | INFO | Dispatcher | Loaded skill: Clima
+2025-10-22 21:16:07,374 | WARNING | Dispatcher | Missing skill.json in C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills\testskill, skipping.
+2025-10-22 21:16:10,382 | WARNING | Dispatcher | No skill found for: l
+2025-10-22 21:16:10,382 | INFO | Main | Respuesta a comando: I didn’t understand that command.
+2025-10-22 21:16:10,383 | ERROR | Main | Error shutting down virtual_voice
+Traceback (most recent call last):
+  File "c:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAI\main.py", line 29, in main_loop
+    procesar_comando(comando)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "c:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAI\main.py", line 20, in procesar_comando
+    virtual_voice.hablar(respuesta)
+    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'modules.voz_jarvis.virtual_voice' has no attribute 'hablar'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAI\main.py", line 35, in main_loop
+    virtual_voice.shutdown()
+    ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'modules.voz_jarvis.virtual_voice' has no attribute 'shutdown'
+2025-10-22 21:18:50,974 | INFO | VozJarvis | [TTS] Iniciando worker thread...
+2025-10-22 21:18:50,975 | INFO | VozJarvis | [TTS] Worker thread iniciado
+2025-10-22 21:18:50,975 | DEBUG | VozJarvis | [TTS] Worker iniciado (engine puede no estar listo hasta process_tts)
+2025-10-22 21:18:50,975 | INFO | VozJarvis | [TTS] Enqueue: Hola Jordan, probando voz número uno.
+2025-10-22 21:18:50,975 | INFO | VozJarvis | [TTS] Pasado a _tts_queue: Hola Jordan, probando voz número uno.
+2025-10-22 21:18:51,026 | INFO | VozJarvis | [TTS] Enqueue: Mensaje número dos en cola.
+2025-10-22 21:18:51,026 | INFO | VozJarvis | [TTS] Pasado a _tts_queue: Mensaje número dos en cola.
+2025-10-22 21:18:51,077 | INFO | VozJarvis | [TTS] Enqueue: Y este es el tercero, asegurando orden.
+2025-10-22 21:18:51,077 | INFO | VozJarvis | [TTS] Pasado a _tts_queue: Y este es el tercero, asegurando orden.
+2025-10-22 21:18:51,128 | INFO | VozJarvis | [TTS] Enqueue: Prueba de interrupción rápida.
+2025-10-22 21:18:51,128 | INFO | VozJarvis | [TTS] Pasado a _tts_queue: Prueba de interrupción rápida.
+2025-10-22 21:18:51,178 | INFO | VozJarvis | [TTS] Interrupt and enqueue: Interrupción: esto debe sonar inmediatamente.
+2025-10-22 21:18:51,179 | DEBUG | VozJarvis | [TTS] Removido de _tts_queue por interrupt: Hola Jordan, probando voz número uno.
+2025-10-22 21:18:51,179 | DEBUG | VozJarvis | [TTS] Removido de _tts_queue por interrupt: Mensaje número dos en cola.
+2025-10-22 21:18:51,179 | DEBUG | VozJarvis | [TTS] Removido de _tts_queue por interrupt: Y este es el tercero, asegurando orden.
+2025-10-22 21:18:51,179 | DEBUG | VozJarvis | [TTS] Removido de _tts_queue por interrupt: Prueba de interrupción rápida.
+2025-10-22 21:18:51,179 | INFO | VozJarvis | [TTS] Pasado a _tts_queue: Interrupción: esto debe sonar inmediatamente.
+2025-10-22 21:18:51,326 | INFO | VozJarvis | [TTS] Voz seleccionada: Microsoft Helena Desktop - Spanish (Spain)
+2025-10-22 21:18:51,326 | INFO | VozJarvis | [TTS] Engine inicializado en main thread con voz: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_ES-ES_HELENA_11.0
+2025-10-22 21:18:51,327 | INFO | VozJarvis | [TTS] Main thread procesando: Interrupción: esto debe sonar inmediatamente.
+2025-10-22 21:18:51,327 | INFO | VozJarvis | [TTS] Reproducción interrumpida desde main thread
+2025-10-22 21:18:54,396 | INFO | VozJarvis | [TTS] Reproducción completada (main): Interrupción: esto debe sonar inmediatamente.
+2025-10-22 21:18:56,429 | INFO | VozJarvis | [TTS] Shutdown solicitado
+2025-10-22 21:18:56,429 | INFO | VozJarvis | [TTS] Esperando que el worker termine...
+2025-10-22 21:18:56,429 | INFO | VozJarvis | [TTS] Worker thread finalizando
+2025-10-22 21:18:56,430 | INFO | VozJarvis | [TTS] Engine detenido en shutdown
+2025-10-22 21:18:56,430 | INFO | VozJarvis | [TTS] Shutdown completo
+2025-10-22 21:19:17,726 | INFO | VozJarvis | [TTS] Iniciando worker thread...
+2025-10-22 21:19:17,726 | INFO | VozJarvis | [TTS] Worker thread iniciado
+2025-10-22 21:19:17,727 | DEBUG | VozJarvis | [TTS] Worker iniciado (engine puede no estar listo hasta process_tts)
+2025-10-22 21:19:17,727 | INFO | VozJarvis | [TTS] Enqueue: Hola Jordan, probando voz número uno.
+2025-10-22 21:19:17,727 | INFO | VozJarvis | [TTS] Pasado a _tts_queue: Hola Jordan, probando voz número uno.
+2025-10-22 21:19:17,778 | INFO | VozJarvis | [TTS] Enqueue: Mensaje número dos en cola.
+2025-10-22 21:19:17,778 | INFO | VozJarvis | [TTS] Pasado a _tts_queue: Mensaje número dos en cola.
+2025-10-22 21:19:17,828 | INFO | VozJarvis | [TTS] Enqueue: Y este es el tercero, asegurando orden.
+2025-10-22 21:19:17,829 | INFO | VozJarvis | [TTS] Pasado a _tts_queue: Y este es el tercero, asegurando orden.
+2025-10-22 21:19:17,879 | INFO | VozJarvis | [TTS] Enqueue: Prueba de interrupción rápida.
+2025-10-22 21:19:17,880 | INFO | VozJarvis | [TTS] Pasado a _tts_queue: Prueba de interrupción rápida.
+2025-10-22 21:19:18,074 | INFO | VozJarvis | [TTS] Voz seleccionada: Microsoft Helena Desktop - Spanish (Spain)
+2025-10-22 21:19:18,074 | INFO | VozJarvis | [TTS] Engine inicializado en main thread con voz: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_ES-ES_HELENA_11.0
+2025-10-22 21:19:18,075 | INFO | VozJarvis | [TTS] Main thread procesando: Hola Jordan, probando voz número uno.
+2025-10-22 21:19:21,447 | INFO | VozJarvis | [TTS] Reproducción completada (main): Hola Jordan, probando voz número uno.
+2025-10-22 21:19:21,469 | INFO | VozJarvis | [TTS] Main thread procesando: Mensaje número dos en cola.
+2025-10-22 21:19:21,535 | INFO | VozJarvis | [TTS] Reproducción completada (main): Mensaje número dos en cola.
+2025-10-22 21:19:21,556 | INFO | VozJarvis | [TTS] Main thread procesando: Y este es el tercero, asegurando orden.
+2025-10-22 21:19:21,622 | INFO | VozJarvis | [TTS] Reproducción completada (main): Y este es el tercero, asegurando orden.
+2025-10-22 21:19:21,643 | INFO | VozJarvis | [TTS] Main thread procesando: Prueba de interrupción rápida.
+2025-10-22 21:19:21,710 | INFO | VozJarvis | [TTS] Reproducción completada (main): Prueba de interrupción rápida.
+2025-10-22 21:19:23,745 | INFO | VozJarvis | [TTS] Shutdown solicitado
+2025-10-22 21:19:23,745 | INFO | VozJarvis | [TTS] Esperando que el worker termine...
+2025-10-22 21:19:23,745 | INFO | VozJarvis | [TTS] Worker thread finalizando
+2025-10-22 21:19:23,746 | INFO | VozJarvis | [TTS] Engine detenido en shutdown
+2025-10-22 21:19:23,746 | INFO | VozJarvis | [TTS] Shutdown completo
+2025-10-22 21:21:12,567 | INFO | Main | === Iniciando Jarvis ===
+2025-10-22 21:21:12,568 | INFO | Dispatcher | Skills folder ready at: C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills
+2025-10-22 21:21:12,570 | INFO | Dispatcher | Loaded skill: Clima
+2025-10-22 21:21:12,570 | WARNING | Dispatcher | Missing skill.json in C:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAi\skills\testskill, skipping.
+2025-10-22 21:21:19,484 | INFO | Dispatcher | Executing skill: Clima
+2025-10-22 21:21:19,485 | INFO | SkillClima | SkillClima ejecutado con input: clima
+2025-10-22 21:21:19,485 | DEBUG | SkillClima | Resultado: Hace 25°C y soleado
+2025-10-22 21:21:19,485 | INFO | Main | Respuesta a comando: Hace 25°C y soleado
+2025-10-22 21:21:19,485 | ERROR | Main | Error shutting down virtual_voice
+Traceback (most recent call last):
+  File "c:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAI\main.py", line 29, in main_loop
+    procesar_comando(comando)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "c:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAI\main.py", line 20, in procesar_comando
+    virtual_voice.hablar(respuesta)
+    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'modules.voz_jarvis.virtual_voice' has no attribute 'hablar'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\yo\Documents\GitHub\ProBestoJarvisAI\JarvisAI\main.py", line 35, in main_loop
+    virtual_voice.shutdown()
+    ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'modules.voz_jarvis.virtual_voice' has no attribute 'shutdown'
