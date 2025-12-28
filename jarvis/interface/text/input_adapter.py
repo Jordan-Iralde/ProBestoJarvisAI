@@ -1,19 +1,32 @@
+# interface/text/input_adapter.py
 class CLIInput:
-    def __init__(self, eventbus):
+    def __init__(self, eventbus, nlu_pipeline=None):
         self.bus = eventbus
+        self.nlu = nlu_pipeline  # Recibir el pipeline ya inicializado
+        self._running = True
 
     def poll(self):
         if not self._ready():
             return
 
-        txt = input(">> ").strip()
-        if txt:
-            self.bus.emit("input.text", {"text": txt})
-            # lanzar nlu
-            from brain.nlu.pipeline import NLUPipeline
-            nlu = NLUPipeline()
-            nlu.process(txt, self.bus)
+        try:
+            txt = input(">> ").strip()
+            if txt:
+                # Emitir evento de input
+                self.bus.emit("input.text", {"text": txt})
+                
+                # Procesar con NLU si está disponible
+                if self.nlu:
+                    self.nlu.process(txt, self.bus)
+                else:
+                    print("[WARN] NLU pipeline no disponible")
+        except EOFError:
+            self._running = False
+        except KeyboardInterrupt:
+            self._running = False
 
     def _ready(self):
-        # CLI siempre está listo
-        return True
+        return self._running
+
+    def stop(self):
+        self._running = False

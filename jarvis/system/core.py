@@ -1,6 +1,9 @@
-# system/core.py
+# system/core.py v2 - Refinado
 import time
 import traceback
+import asyncio
+from typing import Optional
+from datetime import datetime
 
 from system.runtime.state import RuntimeState
 from system.runtime.events import EventBus
@@ -11,13 +14,15 @@ from system.boot.loader import ModuleLoader
 
 from interface.text.input_adapter import CLIInput
 from brain.nlu.pipeline import NLUPipeline
-from brain.nlu.parser import IntentParser
-# dispatcher legacy (event-based)
 
-# NEW: Skill dispatcher puro
+# Sistema de logging profesional
+from system.logging.manager import JarvisLogger
+from system.data.collector import DataCollector
+
+# Skill dispatcher
 from actions.dispatcher import SkillDispatcher
 
-# skills
+# Skills
 from actions.skills.open_app import OpenAppSkill
 from actions.skills.get_time import GetTimeSkill
 from actions.skills.system_status import SystemStatusSkill
@@ -26,124 +31,262 @@ from actions.skills.search_file import SearchFileSkill
 
 
 class JarvisCore:
-    def __init__(self, config):
+    """
+    Jarvis Core v2 - Refinado para escalabilidad
+    
+    Features:
+    - Logging profesional (no más prints)
+    - Data collection transparente
+    - Async support
+    - Hot-reload config
+    - Métricas en tiempo real
+    """
+    
+    def __init__(self, config: dict):
         self.config = config
         self.state = RuntimeState()
-
-        # runtime
+        
+        # Sistema de logging profesional
+        self.logger = JarvisLogger(config)
+        
+        # Data collector (con consent del config)
+        self.data_collector = DataCollector(
+            consent=config.get("data_collection", True)
+        )
+        
+        # Runtime components
         self.events = EventBus(workers=config.get("workers", 4))
         self.scheduler = Scheduler()
         self.modules_loader = ModuleLoader(self)
-        # io & brain
-        self.input = CLIInput(self.events)
-        self.nlu = NLUPipeline()
-
-        # dispatcher original (solo eventos)
-
-        # dispatcher nuevo de skills
+        
+        # Dispatcher de skills
         self.skill_dispatcher = SkillDispatcher()
-
-        # registrar skills
         self._register_skills()
-
-        # pipeline NLU usando el registry real
+        
+        # NLU Pipeline con registry
         self.nlu = NLUPipeline(
             skills_registry=self.skill_dispatcher.skills,
             debug=self.config.get("debug_nlu", False)
-    )
-
+        )
+        
+        # Input adapter
+        self.input = CLIInput(self.events, nlu_pipeline=self.nlu)
+        
+        # Suscripciones a eventos
         self.events.subscribe("nlu.intent", self._handle_skill_intent)
-
+        self.events.subscribe("input.text", self._handle_input_text)
+        
+        # Boot components
         self._initializer = Initializer(self)
         self._diagnostics = Diagnostics(self)
-
+        
+        # Historial de comandos (para patrones)
+        self.command_history = []
+        
+        self.logger.logger.info("JarvisCore v2 initialized")
+    
     def _register_skills(self):
-        self.skill_dispatcher.register("open_app", OpenAppSkill)
-        self.skill_dispatcher.register("get_time", GetTimeSkill)
-        self.skill_dispatcher.register("system_status", SystemStatusSkill)
-        self.skill_dispatcher.register("create_note", CreateNoteSkill)
-        self.skill_dispatcher.register("search_file", SearchFileSkill)
-
-    # NUEVO: handler de intents → skills
+        """Registra todas las skills disponibles"""
+        skills = {
+            "open_app": OpenAppSkill,
+            "get_time": GetTimeSkill,
+            "system_status": SystemStatusSkill,
+            "create_note": CreateNoteSkill,
+            "search_file": SearchFileSkill
+        }
+        
+        for name, skill_cls in skills.items():
+            self.skill_dispatcher.register(name, skill_cls)
+        
+        self.logger.logger.info(f"Registered {len(skills)} skills")
+    
+    def _handle_input_text(self, event):
+        """Handler para texto de entrada"""
+        text = event.get("data", {}).get("text", "")
+        if text:
+            self.command_history.append(text)
+            
+            # Mantener solo últimos 100
+            if len(self.command_history) > 100:
+                self.command_history.pop(0)
+            
+            # Detectar patrones cada 10 comandos
+            if len(self.command_history) % 10 == 0:
+                patterns = self.data_collector.detect_pattern(self.command_history)
+                if patterns:
+                    self.logger.logger.info(f"Patterns detected: {patterns}")
+    
     def _handle_skill_intent(self, event):
+        """Handler para intents procesados por NLU"""
+        start_time = time.time()
+        
         try:
             payload = event.get("data", {})
-            print("[DEBUG_INTENT]", payload)
-
+            
             intent = payload.get("intent")
             entities = payload.get("entities", {})
-
+            raw_text = payload.get("raw", "")
+            
+            if not intent:
+                self.logger.logger.warning("Empty intent received")
+                return
+            
+            # Log comando
+            self.logger.logger.debug(f"Processing intent: {intent} | entities: {entities}")
+            
+            # Dispatch a la skill
             result = self.skill_dispatcher.dispatch(intent, entities, self.state)
-            print(f"[SKILL] {intent} → {result}")
-
+            
+            # Calcular duración
+            duration = time.time() - start_time
+            
+            # Logs y métricas
+            success = result.get("success", True)
+            
+            self.logger.log_command(raw_text, intent, entities, success)
+            self.logger.log_skill_execution(intent, result, duration)
+            
+            # Track app usage si es open_app
+            if intent == "open_app" and "app" in entities:
+                app_name = entities["app"][0] if isinstance(entities["app"], list) else entities["app"]
+                self.data_collector.track_app_usage(app_name)
+            
+            if success:
+                self.logger.logger.info(f"✓ {intent} executed ({duration:.3f}s)")
+            else:
+                self.logger.logger.warning(f"✗ {intent} failed")
+        
         except Exception as e:
-            print(f"[SKILL_ERROR] {e}")
-            traceback.print_exc()
-
-
+            self.logger.log_error("SKILL_EXECUTION_ERROR", str(e), {
+                "intent": intent,
+                "entities": entities
+            })
+            self.logger.logger.error(f"Skill execution error: {e}")
+            if self.config.get("debug_errors", True):
+                traceback.print_exc()
+    
     def boot(self):
+        """Secuencia de arranque del sistema"""
         try:
             self.state.set("BOOTING")
-            self._log("BOOT", "Starting boot sequence")
-
+            self.logger.logger.info("🚀 Starting boot sequence")
+            
+            # Iniciar componentes
+            self.logger.logger.info("Starting EventBus...")
             self.events.start()
+            
+            self.logger.logger.info("Starting Scheduler...")
             self.scheduler.start()
+            
+            # Scheduler: Recolectar métricas cada 5 minutos
+            if self.config.get("data_collection", True):
+                self.scheduler.schedule_periodic(
+                    self.data_collector.collect_system_snapshot,
+                    interval=300  # 5 minutos
+                )
+            
+            self.logger.logger.info("Running initializers...")
             self._initializer.run()
+            
+            self.logger.logger.info("Loading modules...")
             self.modules_loader.load_all()
+            
+            self.logger.logger.info("Running diagnostics...")
             self._diagnostics.run()
-
+            
             self.state.set("READY")
-            self._log("BOOT", "Boot completed - READY")
+            self.logger.logger.info("✓ Boot completed - READY")
+            
+            # Mostrar sugerencias si hay
+            suggestions = self.data_collector.get_suggestions()
+            if suggestions:
+                print("\n💡 Sugerencias basadas en tu uso:")
+                for s in suggestions:
+                    print(f"   {s}")
+                print()
+            
         except Exception as e:
-            self._log_error("BOOT_FAILED", e)
+            self.logger.log_error("BOOT_FAILED", str(e))
+            self.logger.logger.critical(f"Boot failed: {e}")
             self.state.set("DEAD")
             raise
-
+    
     def run(self):
+        """Loop principal del sistema"""
         if not self.state.wait_ready(timeout=5.0):
             raise RuntimeError("Core not ready to run")
+        
         self.state.set("RUNNING")
-        self._log("SYSTEM", "Loop iniciado.")
+        self.logger.logger.info("▶ Main loop started")
+        print("\n" + "="*60)
+        print("JARVIS está listo. Escribe comandos (Ctrl+C para salir)")
+        print("Datos guardados en: Desktop/JarvisData/")
+        print("="*60 + "\n")
+        
         try:
             while self.state.is_running():
                 try:
                     self.input.poll()
                     time.sleep(0.01)
+                except KeyboardInterrupt:
+                    print("\n[SYSTEM] Interrupción detectada")
+                    break
                 except Exception as e:
-                    self._log_error("CORE_LOOP_CRASH", e)
+                    self.logger.log_error("CORE_LOOP_ERROR", str(e))
+                    if self.config.get("crash_on_error", False):
+                        break
         finally:
             self.stop()
-
+    
     def stop(self):
+        """Apagado limpio del sistema"""
         cur = self.state.get()
         if cur in ("STOPPING", "DEAD"):
             return
-        self._log("SYSTEM", "Shutting down...")
+        
+        self.logger.logger.info("🛑 Shutting down...")
         self.state.set("STOPPING")
+        
         try:
-            try: self.scheduler.stop()
-            except Exception as e: self._log_error("SCHED_STOP_ERR", e)
-
-            try: self.events.stop()
-            except Exception as e: self._log_error("EVENTS_STOP_ERR", e)
-
-            try: self.modules_loader.stop_all()
-            except Exception as e: self._log_error("MODULES_STOP_ERR", e)
-
-            try:
-                stop_fn = getattr(self.input, "stop", None)
-                if callable(stop_fn):
-                    stop_fn()
-            except Exception as e:
-                self._log_error("INPUT_STOP_ERR", e)
-
+            # Guardar métricas finales
+            self.logger.save_metrics()
+            
+            # Detener componentes
+            try: 
+                self.input.stop()
+            except Exception as e: 
+                self.logger.log_error("INPUT_STOP_ERR", str(e))
+            
+            try: 
+                self.modules_loader.stop_all()
+            except Exception as e: 
+                self.logger.log_error("MODULES_STOP_ERR", str(e))
+            
+            try: 
+                self.scheduler.stop()
+            except Exception as e: 
+                self.logger.log_error("SCHED_STOP_ERR", str(e))
+            
+            try: 
+                self.events.stop()
+            except Exception as e: 
+                self.logger.log_error("EVENTS_STOP_ERR", str(e))
+        
         finally:
             self.state.set("DEAD")
-            self._log("SYSTEM", "Shutdown complete.")
-
-    def _log(self, level, msg):
-        print(f"[{level}] {msg}")
-
-    def _log_error(self, code, exc):
-        print(f"[ERROR] {code}: {exc}")
-        traceback.print_exc()
+            self.logger.logger.info("✓ Shutdown complete")
+            print("\n👋 Hasta luego!")
+    
+    def reload_config(self, new_config: dict):
+        """Hot-reload de configuración"""
+        self.logger.logger.info("Reloading configuration...")
+        self.config.update(new_config)
+        
+        # Recargar componentes que dependen de config
+        if "debug_nlu" in new_config:
+            self.nlu.debug = new_config["debug_nlu"]
+        
+        if "data_collection" in new_config:
+            self.data_collector.consent = new_config["data_collection"]
+        
+        self.logger.logger.info("Configuration reloaded")

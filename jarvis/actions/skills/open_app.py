@@ -1,12 +1,69 @@
 # actions/skills/open_app.py
-from actions.base.skill import Skill
-from actions.system.app_control import open_application
+import subprocess
+import platform
 
-class OpenAppSkill(Skill):
+
+class OpenAppSkill:
+    """Abre aplicaciones del sistema"""
+    
+    patterns = [
+        r"\b(abr[ie]|open|ejecuta|launch|inicia|lanza)\b",
+        r"\b(abr[ie]|open)\s+\w+",
+    ]
+    
+    entity_hints = {
+        "app": ["notepad", "calc", "chrome", "explorer", "cmd", "firefox", "edge"]
+    }
+    
+    APP_ALIASES = {
+        # Windows
+        "notepad": "notepad.exe",
+        "calculator": "calc.exe",
+        "calc": "calc.exe",
+        "chrome": "chrome.exe",
+        "edge": "msedge.exe",
+        "explorer": "explorer.exe",
+        "cmd": "cmd.exe",
+        "terminal": "cmd.exe",
+        
+        # Cross-platform
+        "browser": "chrome.exe" if platform.system() == "Windows" else "firefox",
+        "editor": "notepad.exe" if platform.system() == "Windows" else "gedit"
+    }
+    
     def run(self, entities, system_state):
-        app = entities.get("app")
-        if not app:
-            return {"error": "missing_app_name"}
-
-        ok = open_application(app)
-        return {"status": "ok" if ok else "fail", "app": app}
+        # Buscar app en entidades
+        app_name = None
+        if entities.get("app"):
+            app_name = entities["app"][0] if isinstance(entities["app"], list) else entities["app"]
+        
+        # Fallback a notepad
+        if not app_name:
+            app_name = "notepad"
+        
+        # Buscar alias
+        executable = self.APP_ALIASES.get(app_name.lower(), app_name)
+        
+        try:
+            print(f"🚀 Abriendo: {app_name}")
+            
+            if platform.system() == "Windows":
+                subprocess.Popen(executable, shell=True)
+            elif platform.system() == "Darwin":  # macOS
+                subprocess.Popen(["open", "-a", executable])
+            else:  # Linux
+                subprocess.Popen([executable])
+            
+            return {
+                "success": True,
+                "app": app_name,
+                "executable": executable
+            }
+            
+        except Exception as e:
+            print(f"❌ Error abriendo {app_name}: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "app": app_name
+            }

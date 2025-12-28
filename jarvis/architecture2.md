@@ -1,114 +1,178 @@
+"""
+JARVIS v2 - Estructura Optimizada para Escalabilidad
+=====================================================
+
+Principios:
+- Sin nombres duplicados
+- Separación clara de responsabilidades
+- Fácil onboarding para nuevos devs
+- Hot-reload friendly
+- Testeable
+
 /jarvis/
 │
-├── system/                             # Orquestación real del sistema
-│   ├── boot/                           # Secuencia de arranque
-│   │   ├── loader.py                   # Carga módulos dinámicos
-│   │   ├── initializer.py              # Configuración inicial
-│   │   └── diagnostics.py              # Pruebas internas del sistema
-│   │
-│   ├── runtime/                        # Lo que vive mientras JARVIS corre
-│   │   ├── events.py                   # Sistema de eventos interno (pub/sub)
-│   │   ├── state.py                    # Estado vivo del sistema
-│   │   ├── scheduler.py                # Tareas periódicas
-│   │   └── watchdog.py                 # Monitoreo y autorecuperación
-│   │
-│   └── core.py                         # Orquestador principal (JARVIS Core)
+├── core/                               # Motor central del sistema
+│   ├── engine.py                       # Orquestador principal (antes core.py)
+│   ├── config.py                       # Config loader con hot-reload
+│   ├── events.py                       # Event bus (pub/sub)
+│   ├── state.py                        # Estado global del sistema
+│   └── lifecycle.py                    # Boot/shutdown hooks
 │
-├── brain/                              # Procesamiento inteligente
-│   ├── nlu/                            # Lenguaje natural
-│   │   ├── pipeline.py                 # Pipeline NLU
-│   │   ├── intents.py                  # Detección de intención
-│   │   ├── entities.py                 # Extracción de entidades
-│   │   └── memory.py                   # Memoria semántica
+├── brain/                              # Procesamiento inteligente (JAR)
+│   ├── nlu/                            # Natural Language Understanding
+│   │   ├── pipeline.py
+│   │   ├── normalizer.py
+│   │   ├── entities.py
+│   │   └── parser.py
 │   │
-│   ├── llm/                            # Lógica de modelos (si usás offline, acá)
+│   ├── llm/                            # Language Model Manager
 │   │   ├── manager.py
-│   │   └── models/
+│   │   ├── providers/                  # OpenAI, Ollama, etc
+│   │   └── prompts/
 │   │
-│   └── reasoning/                      # Razonamiento, planificación, contexto
-│       ├── planner.py
-│       ├── agent.py
-│       └── context.py
+│   ├── memory/                         # Sistema de memoria
+│   │   ├── semantic.py                 # Embeddings & similarity
+│   │   ├── context.py                  # Context window manager
+│   │   └── storage.py                  # Persistencia
+│   │
+│   └── reasoning/                      # Lógica de decisión
+│       ├── planner.py                  # Multi-step planning
+│       ├── agent.py                    # Agentic behavior
+│       └── rules.py                    # Rule-based fallbacks
 │
-├── actions/                            # Acciones y skills (VIS, OS, apps)
-│   ├── base/                           # Clases base para acciones
-│   │   └── action.py
+├── skills/                             # Acciones ejecutables (VIS)
+│   ├── registry.py                     # Skill dispatcher & loader
+│   ├── base.py                         # BaseSkill class
 │   │
-│   ├── system/                         # Acciones del sistema operativo
-│   │   ├── os_hooks.py
-│   │   ├── file_ops.py
-│   │   └── app_control.py
+│   ├── system/                         # OS-level operations
+│   │   ├── apps.py                     # Open/close apps
+│   │   ├── files.py                    # File operations
+│   │   ├── process.py                  # Process management
+│   │   └── network.py                  # Network utils
 │   │
-│   ├── skills/                         # Skills modulares
-│   │   ├── weather.py
+│   ├── productivity/                   # Productivity skills
 │   │   ├── notes.py
 │   │   ├── reminders.py
-│   │   └── web_search.py
+│   │   ├── calendar.py
+│   │   └── search.py
 │   │
-│   └── automation/                     # Automatizaciones avanzadas
-│       ├── triggers.py
-│       └── rules_engine.py
-│
-├── io/                                 # Todo lo que entra y sale del sistema
-│   ├── audio/
-│   │   ├── loop.py                     # Captura continua
-│   │   ├── vad.py                      # Voice activity detection
-│   │   ├── wakeword.py                 # Hotword
-│   │   └── stt.py                      # Transcripción
+│   ├── automation/                     # Advanced automation
+│   │   ├── workflows.py                # Multi-step workflows
+│   │   ├── triggers.py                 # Event-based triggers
+│   │   └── macros.py                   # Recorded macros
 │   │
-│   ├── speech/
-│   │   └── tts.py                      # Voz sintética
+│   └── external/                       # API integrations
+│       ├── weather.py
+│       ├── web_search.py
+│       └── email.py
+│
+├── io/                                 # Input/Output adapters
+│   ├── cli/                            # Command-line interface
+│   │   ├── prompt.py
+│   │   └── formatter.py
 │   │
-│   ├── text/
-│   │   ├── input_adapter.py
-│   │   └── output_adapter.py
+│   ├── voice/                          # Voice I/O
+│   │   ├── stt.py                      # Speech-to-text
+│   │   ├── tts.py                      # Text-to-speech
+│   │   ├── wakeword.py                 # Wake word detection
+│   │   └── vad.py                      # Voice activity detection
 │   │
-│   └── gui/                            # Interfaces visuales
-│       ├── dashboard/
-│       │   ├── api.py
-│       │   └── views.py
-│       └── cli/
-│           └── cli.py
+│   └── api/                            # REST/WebSocket API
+│       ├── server.py                   # FastAPI/Express server
+│       ├── routes.py                   # Endpoints
+│       └── websocket.py                # Real-time communication
 │
-├── modules/                            # Extensiones externas (plugins)
-│   ├── loader.py                       # Carga módulos externos
-│   └── installed/                      # Cada módulo aislado
-│       └── example_module/
-│           └── module.py
+├── data/                               # Data management
+│   ├── collector.py                    # Telemetry & analytics
+│   ├── storage.py                      # SQLite/JSON persistence
+│   ├── models.py                       # Data models
+│   └── privacy.py                      # Privacy controls & export
 │
-├── storage/                            # Persistencia
-│   ├── sqlite/                         # DB local
-│   ├── cache/
-│   └── logs/
+├── monitoring/                         # Observability
+│   ├── logger.py                       # Structured logging
+│   ├── metrics.py                      # Performance metrics
+│   ├── alerts.py                       # Alert system
+│   └── debugger.py                     # Debug utilities
 │
-├── tests/                              # Tests reales
-│   ├── test_nlu.py
-│   ├── test_skills.py
-│   └── test_runtime.py
+├── scheduler/                          # Task scheduling
+│   ├── cron.py                         # Cron-like scheduler
+│   ├── queue.py                        # Task queue
+│   └── worker.py                       # Background workers
 │
-├── webapp/                             # Dashboard externo (React/Next)
-│   └── ...
+├── plugins/                            # Extensibility
+│   ├── loader.py                       # Plugin loader
+│   ├── registry.py                     # Plugin registry
+│   └── installed/                      # User-installed plugins
+│       └── .gitkeep
 │
-├── main.py                             # Punto de entrada
-└── config.json                         # Config
+├── webapp/                             # MERN Dashboard
+│   ├── backend/                        # Node.js + Express
+│   │   ├── server.js
+│   │   ├── routes/
+│   │   ├── controllers/
+│   │   └── middleware/
+│   │
+│   └── frontend/                       # React
+│       ├── src/
+│       │   ├── components/
+│       │   ├── pages/
+│       │   ├── hooks/
+│       │   └── utils/
+│       ├── public/
+│       └── package.json
+│
+├── tests/                              # Testing suite
+│   ├── unit/                           # Unit tests
+│   ├── integration/                    # Integration tests
+│   └── e2e/                            # End-to-end tests
+│
+├── docs/                               # Documentation
+│   ├── architecture.md
+│   ├── contributing.md
+│   ├── skills.md                       # How to create skills
+│   └── api.md                          # API documentation
+│
+├── scripts/                            # Utility scripts
+│   ├── install.sh
+│   ├── dev.sh
+│   └── backup.py
+│
+├── main.py                             # Entry point
+├── config.json                         # Configuration
+├── requirements.txt                    # Python deps
+├── package.json                        # Node deps (webapp)
+├── .env.example                        # Environment variables
+└── README.md
 
 
+KEY IMPROVEMENTS vs v1:
+========================
 
-JAR = /brain/ entero
-Incluye:
-nlu/
-reasoning/
-llm/
-memory
+1. NO DUPLICATES:
+   - "system/" eliminado (confuso con OS)
+   - "actions/" renombrado a "skills/" (más claro)
+   - "storage/" movido dentro de "data/"
 
-Funciona como la “mente” del sistema.
-Procesa → entiende → decide.
+2. CLEAR SEPARATION:
+   - core/ = Motor
+   - brain/ = Inteligencia
+   - skills/ = Acciones
+   - io/ = Interfaces
+   - monitoring/ = Observabilidad
 
-VIS = /actions/ entero
-Incluye:
-system/ (hooks, apps, SO)
-skills/ (acciones específicas)
-automation/ (reglas, triggers, planificaciones)
+3. SCALABILITY:
+   - webapp/ separado con su propio stack
+   - plugins/ para extensiones
+   - scheduler/ independiente
+   - data/ con privacy by design
 
-Esto es el “cuerpo” del sistema.
-Ejecuta → controla → modifica el entorno.
+4. DEVELOPER FRIENDLY:
+   - docs/ con guías claras
+   - tests/ organizados por tipo
+   - scripts/ para automatización
+
+5. PRODUCTION READY:
+   - monitoring/ completo
+   - .env para secrets
+   - logging estructurado
+"""
