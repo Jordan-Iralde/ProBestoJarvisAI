@@ -13,21 +13,23 @@ from system.boot.diagnostics import Diagnostics
 from system.boot.loader import ModuleLoader
 
 from interface.text.input_adapter import CLIInput
+from interface.text.output_adapter import TextOutput
+from interface.speech.tts import TTS
 from brain.nlu.pipeline import NLUPipeline
 
 # Sistema de logging profesional
-from system.logging.manager import JarvisLogger
-from system.data.collector import DataCollector
+from skills.system.logging.manager import JarvisLogger
+from data.collector import DataCollector
 
 # Skill dispatcher
-from actions.dispatcher import SkillDispatcher
+from skills.actions.dispatcher import SkillDispatcher
 
 # Skills
-from actions.skills.open_app import OpenAppSkill
-from actions.skills.get_time import GetTimeSkill
-from actions.skills.system_status import SystemStatusSkill
-from actions.skills.create_note import CreateNoteSkill
-from actions.skills.search_file import SearchFileSkill
+from skills.open_app import OpenAppSkill
+from skills.get_time import GetTimeSkill
+from skills.system_status import SystemStatusSkill
+from skills.create_note import CreateNoteSkill
+from skills.search_file import SearchFileSkill
 
 
 class JarvisCore:
@@ -51,16 +53,20 @@ class JarvisCore:
         
         # Data collector (con consent del config)
         self.data_collector = DataCollector(
-            consent=config.get("data_collection", True)
+            consent=config.get("data_collection", False)
         )
         
         # Runtime components
         self.events = EventBus(workers=config.get("workers", 4))
         self.scheduler = Scheduler()
         self.modules_loader = ModuleLoader(self)
+
+        # Output adapters
+        self.output = TextOutput()
+        self.tts = TTS(enabled=bool(config.get("tts", False)))
         
         # Dispatcher de skills
-        self.skill_dispatcher = SkillDispatcher()
+        self.skill_dispatcher = SkillDispatcher(logger=self.logger.logger)
         self._register_skills()
         
         # NLU Pipeline con registry
@@ -70,11 +76,12 @@ class JarvisCore:
         )
         
         # Input adapter
-        self.input = CLIInput(self.events, nlu_pipeline=self.nlu)
+        self.input = CLIInput(self.events, nlu_pipeline=self.nlu, logger=self.logger.logger)
         
         # Suscripciones a eventos
         self.events.subscribe("nlu.intent", self._handle_skill_intent)
         self.events.subscribe("input.text", self._handle_input_text)
+        self.events.subscribe("jarvis.response", self._handle_response)
         
         # Boot components
         self._initializer = Initializer(self)
@@ -82,8 +89,61 @@ class JarvisCore:
         
         # Historial de comandos (para patrones)
         self.command_history = []
+
+        # Short-term memory (fase 1): últimas interacciones para contexto simple
+        self.short_term_memory = []
+        self.short_term_memory_max = int(config.get("short_term_memory_max", 20))
         
         self.logger.logger.info("JarvisCore v2 initialized")
+
+    def _log(self, tag: str, msg: str):
+        """Logging interno usado por módulos de boot (initializer/loader/diagnostics)."""
+        try:
+            self.logger.logger.info(f"[{tag}] {msg}")
+        except Exception:
+            print(f"[{tag}] {msg}")
+
+    def _format_response(self, intent: str, dispatch_result: dict) -> str:
+        if not intent:
+            return "No recibí ninguna intención."
+
+        if intent == "unknown":
+            available = self.skill_dispatcher.list_skills()
+            return "No entendí el comando. Probá con: " + ", ".join(available)
+
+        if not dispatch_result.get("success", True):
+            err = dispatch_result.get("error") or "error"
+            return f"No pude ejecutar '{intent}': {err}"
+
+        payload = dispatch_result.get("result")
+        if isinstance(payload, dict) and payload.get("success") is False:
+            err = payload.get("error") or "error"
+            return f"No pude ejecutar '{intent}': {err}"
+
+        if intent == "open_app" and isinstance(payload, dict):
+            return f"Abriendo {payload.get('app', 'la aplicación')}."
+        if intent == "get_time" and isinstance(payload, dict):
+            return f"Son las {payload.get('time')} del {payload.get('date')}."
+        if intent == "system_status" and isinstance(payload, dict):
+            cpu = (payload.get("cpu") or {}).get("percent")
+            mem = (payload.get("memory") or {}).get("percent")
+            if cpu is not None and mem is not None:
+                return f"Estado del sistema: CPU {cpu}% | RAM {mem}%."
+            return "Estado del sistema obtenido."
+        if intent == "create_note" and isinstance(payload, dict):
+            return f"Nota creada: {payload.get('filename', 'ok')}."
+        if intent == "search_file" and isinstance(payload, dict):
+            return f"Búsqueda completada. Encontré {payload.get('count', 0)} resultados."
+
+        return f"Listo: {intent}."
+
+    def _handle_response(self, event):
+        data = event.get("data", {}) if isinstance(event, dict) else {}
+        text = data.get("text")
+        if not text:
+            return
+        self.output.send(text)
+        self.tts.speak(text)
     
     def _register_skills(self):
         """Registra todas las skills disponibles"""
@@ -136,20 +196,52 @@ class JarvisCore:
             
             # Dispatch a la skill
             result = self.skill_dispatcher.dispatch(intent, entities, self.state)
+
+            response_text = self._format_response(intent, result)
+            self.events.emit("jarvis.response", {
+                "text": response_text,
+                "intent": intent,
+                "entities": entities
+            })
+
+            payload_result = result.get("result") if isinstance(result, dict) else None
+
+            # Guardar contexto mínimo (short-term memory)
+            self.short_term_memory.append({
+                "intent": intent,
+                "entities": entities,
+                "raw": raw_text,
+                "response": response_text
+            })
+            if len(self.short_term_memory) > self.short_term_memory_max:
+                self.short_term_memory = self.short_term_memory[-self.short_term_memory_max:]
+            self.events.emit("memory.short_term.updated", {
+                "size": len(self.short_term_memory),
+                "last": self.short_term_memory[-1] if self.short_term_memory else None
+            })
             
             # Calcular duración
             duration = time.time() - start_time
-            
+
             # Logs y métricas
-            success = result.get("success", True)
+            success = True
+            if isinstance(result, dict) and result.get("success") is False:
+                success = False
+            if isinstance(payload_result, dict) and payload_result.get("success") is False:
+                success = False
             
             self.logger.log_command(raw_text, intent, entities, success)
             self.logger.log_skill_execution(intent, result, duration)
             
             # Track app usage si es open_app
-            if intent == "open_app" and "app" in entities:
-                app_name = entities["app"][0] if isinstance(entities["app"], list) else entities["app"]
-                self.data_collector.track_app_usage(app_name)
+            if intent == "open_app" and success:
+                app_name = None
+                if isinstance(payload_result, dict):
+                    app_name = payload_result.get("app")
+                if not app_name and isinstance(entities.get("app"), list) and len(entities.get("app")) > 0:
+                    app_name = entities.get("app")[0]
+                if app_name:
+                    self.data_collector.track_app_usage(app_name)
             
             if success:
                 self.logger.logger.info(f"✓ {intent} executed ({duration:.3f}s)")
@@ -179,11 +271,8 @@ class JarvisCore:
             self.scheduler.start()
             
             # Scheduler: Recolectar métricas cada 5 minutos
-            if self.config.get("data_collection", True):
-                self.scheduler.schedule_periodic(
-                    self.data_collector.collect_system_snapshot,
-                    interval=300  # 5 minutos
-                )
+            if self.config.get("data_collection", False):
+                self.scheduler.schedule_every(300, self.data_collector.collect_system_snapshot)
             
             self.logger.logger.info("Running initializers...")
             self._initializer.run()

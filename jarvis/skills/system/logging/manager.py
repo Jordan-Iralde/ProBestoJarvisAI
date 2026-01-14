@@ -43,6 +43,11 @@ class JarvisLogger:
         # Logger principal
         self.logger = logging.getLogger("Jarvis")
         self.logger.setLevel(logging.DEBUG if self.config.get("debug") else logging.INFO)
+
+        # Evitar duplicar handlers si se reinicializa en el mismo proceso
+        if getattr(self.logger, "handlers", None):
+            if len(self.logger.handlers) > 0:
+                return
         
         # Formato detallado
         formatter = logging.Formatter(

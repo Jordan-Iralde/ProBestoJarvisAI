@@ -8,7 +8,7 @@ from brain.nlu.parser import IntentParser
 class NLUPipeline:
     def __init__(self, skills_registry, debug=False):
         self.norm = Normalizer()
-        self.entities = EntityExtractor()
+        self.entities = EntityExtractor(skills_registry)
         self.intent = IntentParser(skills_registry)
         self.debug = debug
         self.skills_registry = skills_registry

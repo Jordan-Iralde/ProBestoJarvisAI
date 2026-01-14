@@ -17,11 +17,15 @@ class SearchFileSkill:
     
     def run(self, entities, system_state):
         # Extraer parámetros
-        filename = entities.get("file", entities.get("search_query", "*"))
+        filename = entities.get("file")
+        if not filename:
+            filename = entities.get("search_query", "*")
         if isinstance(filename, list):
-            filename = filename[0]
+            filename = filename[0] if len(filename) > 0 else entities.get("search_query", "*")
         
         search_path = entities.get("path", os.path.expanduser("~"))
+        if isinstance(search_path, list):
+            search_path = search_path[0] if len(search_path) > 0 else os.path.expanduser("~")
         max_results = 10
         
         print(f"🔍 Buscando: {filename}")

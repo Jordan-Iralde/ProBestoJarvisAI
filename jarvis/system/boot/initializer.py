@@ -2,6 +2,8 @@
 import os
 import json
 
+from system.consent import get_or_request_data_collection_consent
+
 class Initializer:
     REQUIRED_KEYS = ["name", "version"]
 
@@ -24,6 +26,13 @@ class Initializer:
         # set defaults
         cfg.setdefault("workers", 4)
         cfg.setdefault("log_level", "INFO")
+
+        if cfg.get("ask_consent", False) and "data_collection" not in cfg:
+            cfg["data_collection"] = get_or_request_data_collection_consent(
+                app_name=str(cfg.get("name", "Jarvis")),
+                app_version=str(cfg.get("version", "unknown"))
+            )
+        cfg.setdefault("data_collection", False)
 
         # init logging minimal
         self.core._log("INIT", f"Initializer applied. name={cfg.get('name')} version={cfg.get('version')}")

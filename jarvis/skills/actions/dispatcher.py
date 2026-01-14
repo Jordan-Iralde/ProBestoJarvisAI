@@ -1,9 +1,19 @@
 # actions/dispatcher.py
 
 class SkillDispatcher:
-    def __init__(self):
+    def __init__(self, logger=None):
         # Usar un solo registro para evitar duplicación
         self.skills = {}  # Este es el que usa NLUPipeline
+        self.logger = logger
+
+    def _log(self, level: str, msg: str):
+        if self.logger:
+            fn = getattr(self.logger, level, None)
+            if callable(fn):
+                fn(msg)
+                return
+        # fallback
+        print(msg)
 
     def register(self, intent_name, skill_cls):
         """
@@ -14,7 +24,7 @@ class SkillDispatcher:
             skill_cls (class): Clase de la skill (no instancia)
         """
         self.skills[intent_name] = skill_cls
-        print(f"[DISPATCHER] Registered skill: {intent_name}")
+        self._log("debug", f"[DISPATCHER] Registered skill: {intent_name}")
 
     def dispatch(self, intent, entities, system_state):
         """
@@ -29,7 +39,7 @@ class SkillDispatcher:
             dict: Resultado de la ejecución
         """
         if intent not in self.skills:
-            print(f"[DISPATCHER] ⚠ Intent '{intent}' no tiene skill registrada")
+            self._log("warning", f"[DISPATCHER] Intent '{intent}' no tiene skill registrada")
             return {
                 "success": False,
                 "error": f"skill_not_implemented:{intent}",
@@ -41,7 +51,7 @@ class SkillDispatcher:
             skill_cls = self.skills[intent]
             skill_instance = skill_cls()
             
-            print(f"[DISPATCHER] ▶ Executing skill: {intent}")
+            self._log("info", f"[DISPATCHER] Executing skill: {intent}")
             result = skill_instance.run(entities, system_state)
             
             return {
@@ -51,7 +61,7 @@ class SkillDispatcher:
             }
             
         except Exception as e:
-            print(f"[DISPATCHER] ✗ Error ejecutando {intent}: {e}")
+            self._log("error", f"[DISPATCHER] Error ejecutando {intent}: {e}")
             import traceback
             traceback.print_exc()
             return {
