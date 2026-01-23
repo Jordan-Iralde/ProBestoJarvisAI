@@ -15,7 +15,7 @@ class SearchFileSkill:
         "search_query": {"pattern": r"busca\s+(.+)"}
     }
     
-    def run(self, entities, system_state):
+    def run(self, entities, core):
         # Extraer parámetros
         filename = entities.get("file")
         if not filename:

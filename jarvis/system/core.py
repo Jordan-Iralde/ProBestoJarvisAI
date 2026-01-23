@@ -15,6 +15,7 @@ from system.boot.loader import ModuleLoader
 from interface.text.input_adapter import CLIInput
 from interface.text.output_adapter import TextOutput
 from interface.speech.tts import TTS
+from interface.speech.stt import VoskSTT
 from brain.nlu.pipeline import NLUPipeline
 
 # Sistema de logging profesional
@@ -30,6 +31,13 @@ from skills.get_time import GetTimeSkill
 from skills.system_status import SystemStatusSkill
 from skills.create_note import CreateNoteSkill
 from skills.search_file import SearchFileSkill
+from skills.summarize_recent_activity import SummarizeRecentActivitySkill
+
+# Constants
+from system.constants import (
+    EVENT_JARVIS_RESPONSE, EVENT_MEMORY_SHORT_TERM_UPDATED,
+    EVENT_INPUT_TEXT, EVENT_INPUT_VOICE, EVENT_NLU_INTENT
+)
 
 
 class JarvisCore:
@@ -65,6 +73,9 @@ class JarvisCore:
         self.output = TextOutput()
         self.tts = TTS(enabled=bool(config.get("tts", False)))
         
+        # STT (offline, Vosk) con wake word obligatoria
+        self.stt = VoskSTT()
+        
         # Dispatcher de skills
         self.skill_dispatcher = SkillDispatcher(logger=self.logger.logger)
         self._register_skills()
@@ -79,9 +90,10 @@ class JarvisCore:
         self.input = CLIInput(self.events, nlu_pipeline=self.nlu, logger=self.logger.logger)
         
         # Suscripciones a eventos
-        self.events.subscribe("nlu.intent", self._handle_skill_intent)
-        self.events.subscribe("input.text", self._handle_input_text)
-        self.events.subscribe("jarvis.response", self._handle_response)
+        self.events.subscribe(EVENT_NLU_INTENT, self._handle_skill_intent)
+        self.events.subscribe(EVENT_INPUT_TEXT, self._handle_input_text)
+        self.events.subscribe(EVENT_INPUT_VOICE, self._handle_input_voice)
+        self.events.subscribe(EVENT_JARVIS_RESPONSE, self._handle_response)
         
         # Boot components
         self._initializer = Initializer(self)
@@ -147,18 +159,28 @@ class JarvisCore:
     
     def _register_skills(self):
         """Registra todas las skills disponibles"""
+        print("DEBUG: Starting _register_skills")
         skills = {
             "open_app": OpenAppSkill,
             "get_time": GetTimeSkill,
             "system_status": SystemStatusSkill,
             "create_note": CreateNoteSkill,
-            "search_file": SearchFileSkill
+            "search_file": SearchFileSkill,
+            "summarize_recent_activity": SummarizeRecentActivitySkill
         }
         
         for name, skill_cls in skills.items():
             self.skill_dispatcher.register(name, skill_cls)
         
-        self.logger.logger.info(f"Registered {len(skills)} skills")
+        print(f"DEBUG: Registered {len(skills)} skills: {list(skills.keys())}")
+    
+    def _handle_input_voice(self, event):
+        """Handler para entrada de voz (STT offline)"""
+        text = event.get("data", {}).get("text", "")
+        if text:
+            self.logger.logger.info(f"[VOICE] {text}")
+            # Reutilizar pipeline de NLU como si fuera texto
+            self.nlu.process(text, self.events)
     
     def _handle_input_text(self, event):
         """Handler para texto de entrada"""
@@ -195,10 +217,10 @@ class JarvisCore:
             self.logger.logger.debug(f"Processing intent: {intent} | entities: {entities}")
             
             # Dispatch a la skill
-            result = self.skill_dispatcher.dispatch(intent, entities, self.state)
+            result = self.skill_dispatcher.dispatch(intent, entities, self)
 
             response_text = self._format_response(intent, result)
-            self.events.emit("jarvis.response", {
+            self.events.emit(EVENT_JARVIS_RESPONSE, {
                 "text": response_text,
                 "intent": intent,
                 "entities": entities
@@ -215,7 +237,7 @@ class JarvisCore:
             })
             if len(self.short_term_memory) > self.short_term_memory_max:
                 self.short_term_memory = self.short_term_memory[-self.short_term_memory_max:]
-            self.events.emit("memory.short_term.updated", {
+            self.events.emit(EVENT_MEMORY_SHORT_TERM_UPDATED, {
                 "size": len(self.short_term_memory),
                 "last": self.short_term_memory[-1] if self.short_term_memory else None
             })
@@ -253,57 +275,59 @@ class JarvisCore:
                 "intent": intent,
                 "entities": entities
             })
-            self.logger.logger.error(f"Skill execution error: {e}")
-            if self.config.get("debug_errors", True):
-                traceback.print_exc()
+def boot(self):
+    """Secuencia de arranque del sistema"""
+    try:
+        self.state.set("BOOTING")
+        self.logger.logger.info("🚀 Starting boot sequence")
+            
+        # Iniciar componentes
+        self.logger.logger.info("Starting EventBus...")
+        self.events.start()
+            
+        self.logger.logger.info("Starting Scheduler...")
+        self.scheduler.start()
+            
+        # Scheduler: Recolectar métricas cada 5 minutos
+        if self.config.get("data_collection", False):
+            self.scheduler.schedule_every(300, self.data_collector.collect_system_snapshot)
+            
+        self.logger.logger.info("Running initializers...")
+        self._initializer.run()
+            
+        self.logger.logger.info("Loading modules...")
+        self.modules_loader.load_all()
+            
+        self.logger.logger.info("Running diagnostics...")
+        self._diagnostics.run()
+            
+        self.state.set("READY")
+        self.logger.logger.info("✓ Boot completed - READY")
+            
+        # Iniciar STT si está disponible
+        if self.stt.start(self.events):
+            self.logger.logger.info("[STT] Offline STT started (wake word: jarvis)")
+        else:
+            self.logger.logger.warning("[STT] STT not available (install vosk & sounddevice)")
+            
+        # Mostrar sugerencias si hay
+        suggestions = self.data_collector.get_suggestions()
+        if suggestions:
+            print("\n💡 Sugerencias basadas en tu uso:")
+            for s in suggestions:
+                print(f"   {s}")
+            print()
+            
+    except Exception as e:
+        self.logger.log_error("BOOT_FAILED", str(e))
+        self.logger.logger.critical(f"Boot failed: {e}")
+        self.state.set("DEAD")
+        raise
     
-    def boot(self):
-        """Secuencia de arranque del sistema"""
-        try:
-            self.state.set("BOOTING")
-            self.logger.logger.info("🚀 Starting boot sequence")
-            
-            # Iniciar componentes
-            self.logger.logger.info("Starting EventBus...")
-            self.events.start()
-            
-            self.logger.logger.info("Starting Scheduler...")
-            self.scheduler.start()
-            
-            # Scheduler: Recolectar métricas cada 5 minutos
-            if self.config.get("data_collection", False):
-                self.scheduler.schedule_every(300, self.data_collector.collect_system_snapshot)
-            
-            self.logger.logger.info("Running initializers...")
-            self._initializer.run()
-            
-            self.logger.logger.info("Loading modules...")
-            self.modules_loader.load_all()
-            
-            self.logger.logger.info("Running diagnostics...")
-            self._diagnostics.run()
-            
-            self.state.set("READY")
-            self.logger.logger.info("✓ Boot completed - READY")
-            
-            # Mostrar sugerencias si hay
-            suggestions = self.data_collector.get_suggestions()
-            if suggestions:
-                print("\n💡 Sugerencias basadas en tu uso:")
-                for s in suggestions:
-                    print(f"   {s}")
-                print()
-            
-        except Exception as e:
-            self.logger.log_error("BOOT_FAILED", str(e))
-            self.logger.logger.critical(f"Boot failed: {e}")
-            self.state.set("DEAD")
-            raise
-    
-    def run(self):
-        """Loop principal del sistema"""
-        if not self.state.wait_ready(timeout=5.0):
-            raise RuntimeError("Core not ready to run")
+def run(self):
+    """Loop principal del sistema"""
+    if not self.state.wait_ready(timeout=5.0):
+        raise RuntimeError("Core not ready to run")
         
         self.state.set("RUNNING")
         self.logger.logger.info("▶ Main loop started")
@@ -339,6 +363,12 @@ class JarvisCore:
         try:
             # Guardar métricas finales
             self.logger.save_metrics()
+            
+            # Detener STT si está corriendo
+            try:
+                self.stt.stop()
+            except Exception as e:
+                self.logger.log_error("STT_STOP_ERR", str(e))
             
             # Detener componentes
             try: 

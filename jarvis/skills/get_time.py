@@ -17,14 +17,11 @@ class GetTimeSkill:
         "time_query": {"pattern": r"\b(hora|time)\b"}
     }
     
-    def run(self, entities, system_state):
+    def run(self, entities, core):
         now = datetime.now()
         time_str = now.strftime("%H:%M:%S")
         date_str = now.strftime("%d/%m/%Y")
         day_name = now.strftime("%A")
-        
-        print(f"⏰ Hora: {time_str}")
-        print(f"📅 Fecha: {date_str} ({day_name})")
         
         return {
             "time": time_str,

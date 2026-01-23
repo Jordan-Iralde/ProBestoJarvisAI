@@ -11,7 +11,7 @@ class SystemStatusSkill:
         r"\b(cpu|memoria|ram|disco)\b"
     ]
     
-    def run(self, entities, system_state):
+    def run(self, entities, core):
         try:
             # CPU
             cpu_percent = psutil.cpu_percent(interval=1)
@@ -29,12 +29,6 @@ class SystemStatusSkill:
             disk_used = disk.used / (1024**3)
             disk_percent = disk.percent
             
-            print("💻 ESTADO DEL SISTEMA")
-            print(f"   OS: {platform.system()} {platform.release()}")
-            print(f"   CPU: {cpu_percent}% ({cpu_count} cores)")
-            print(f"   RAM: {mem_used:.1f}GB / {mem_total:.1f}GB ({mem_percent}%)")
-            print(f"   Disco: {disk_used:.1f}GB / {disk_total:.1f}GB ({disk_percent}%)")
-            
             return {
                 "os": f"{platform.system()} {platform.release()}",
                 "cpu": {"percent": cpu_percent, "cores": cpu_count},
@@ -43,5 +37,4 @@ class SystemStatusSkill:
             }
             
         except Exception as e:
-            print(f"❌ Error obteniendo estado: {e}")
             return {"success": False, "error": str(e)}

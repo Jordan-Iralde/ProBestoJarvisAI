@@ -20,7 +20,7 @@ class CreateNoteSkill:
         self.notes_dir = os.path.join(os.path.expanduser("~"), "jarvis_notes")
         os.makedirs(self.notes_dir, exist_ok=True)
     
-    def run(self, entities, system_state):
+    def run(self, entities, core):
         # Extraer contenido
         content = entities.get("note_content", "Nota sin contenido")
         if isinstance(content, list):
@@ -38,10 +38,6 @@ class CreateNoteSkill:
                 f.write(f"Creado: {datetime.now()}\n\n")
                 f.write(content)
             
-            print(f"📝 Nota creada: {filename}")
-            print(f"📂 Ubicación: {filepath}")
-            print(f"💬 Contenido: {content}")
-            
             return {
                 "success": True,
                 "filename": filename,
@@ -50,5 +46,4 @@ class CreateNoteSkill:
             }
             
         except Exception as e:
-            print(f"❌ Error creando nota: {e}")
             return {"success": False, "error": str(e)}

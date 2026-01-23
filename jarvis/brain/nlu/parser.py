@@ -25,10 +25,54 @@ class IntentParser:
         # Keywords de fallback (se expanden con uso)
         self.keyword_fallback = {
             "get_time": ["hora", "time", "reloj", "fecha", "date"],
-            "open_app": ["abrir", "abre", "ejecuta", "inicia", "lanza", "open", "launch"],
+            "open_app": ["abrir", "abre", "ejecuta", "inicia", "lanza", "open", "launch", "calculadora", "calculator"],
             "system_status": ["estado", "status", "info", "cpu", "memoria", "ram", "disco"],
             "create_note": ["nota", "anota", "escribe", "note", "write"],
-            "search_file": ["busca", "encuentra", "search", "find", "donde esta"]
+            "search_file": ["busca", "encuentra", "search", "find", "donde esta"],
+            "system_auto_optimization": ["optimizar", "optimize", "limpiar", "cleanup", "tune", "ajustar", "auto", "automatico"]
+        }
+        
+        # Soft phrase mapping para frases conversacionales
+        self.soft_phrase_maps = {
+            "summarize_recent_activity": [
+                "que estuve haciendo",
+                "que hice ultimamente", 
+                "resumir la sesion",
+                "actividad reciente",
+                "que ha pasado",
+                "que hicimos",
+                "recuerda lo que hice",
+                "resumen de actividad"
+            ],
+            "summarize_last_session": [
+                "resumir la sesion",
+                "sesion actual",
+                "ultima sesion",
+                "resumen de sesion",
+                "que paso en la sesion"
+            ],
+            "get_time": [
+                "que hora es",
+                "dime la hora",
+                "hora actual"
+            ],
+            "system_status": [
+                "como esta el sistema",
+                "estado del pc",
+                "info del sistema"
+            ],
+            "system_auto_optimization": [
+                "optimiza el sistema",
+                "limpia el pc",
+                "ajusta los recursos",
+                "optimizar automaticamente",
+                "limpieza automatica",
+                "tune up del sistema",
+                "mejorar rendimiento",
+                "optimizar pc",
+                "limpiar archivos temporales",
+                "defragmentar disco"
+            ]
         }
         
         # Historial de intents (para aprendizaje)
@@ -99,6 +143,18 @@ class IntentParser:
         
         return None, 0.0
     
+    def _soft_phrase_match(self, text):
+        """Soft matching para frases conversacionales completas"""
+        text_lower = text.lower().strip()
+        
+        for intent, phrases in self.soft_phrase_maps.items():
+            for phrase in phrases:
+                # Match exacto o contiene la frase
+                if phrase.lower() in text_lower or text_lower == phrase.lower():
+                    return intent, 0.8  # Alta confianza para frases exactas
+        
+        return None, 0.0
+    
     def parse(self, text: str, entities: dict):
         """
         Pipeline principal con sistema de confianza.
@@ -129,7 +185,14 @@ class IntentParser:
             self._record_intent(intent, conf, "keywords")
             return intent
         
-        # 4. Unknown
+        # 4. Soft phrase matching
+        intent, conf = self._soft_phrase_match(t)
+        if intent:
+            self._log(f"Intent from soft phrases: {intent} (conf: {conf:.2f})")
+            self._record_intent(intent, conf, "soft_phrase")
+            return intent
+        
+        # 5. Unknown
         self._log(f"No intent detected for: '{text}'")
         self._record_intent("unknown", 0.0, "none")
         return "unknown"

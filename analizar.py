@@ -1,22 +1,30 @@
 import pickle
-import inspect
+from pprint import pprint
 
-pkl_path = 'tu_modelo.pkl'  # cambia por el nombre real
+PKL_PATH = "model.pkl"
 
-try:
-    with open(pkl_path, 'rb') as f:
-        obj = pickle.load(f)
-    
-    print("TIPO:", type(obj).__name__)
-    print("\nOBJETO COMPLETO:\n", obj)
-    
-    print("\nATRIBUTOS INTERNOS:")
-    for name, value in inspect.getmembers(obj):
-        if not name.startswith('__'):
-            print(f"{name}: {type(value).__name__} → {value}")
-    
-    if hasattr(obj, 'predict'):
-        print("\nES MODELO PREDICTIVO → prueba: obj.predict([[1, 2, 3]])")
+with open(PKL_PATH, "rb") as f:
+    modelo = pickle.load(f)
 
-except Exception as e:
-    print("ERROR:", e)
+print("=== INFORMACIÓN GENERAL ===")
+print("Tipo:", type(modelo))
+print("Clase:", modelo.__class__.__name__)
+
+print("\n=== HIPERPARÁMETROS ===")
+pprint(modelo.get_params())
+
+print("\n=== DATOS DEL MODELO ===")
+print("Número de features:", modelo.n_features_in_)
+print("Clases:", modelo.classes_)
+
+print("\n=== ENSEMBLE ===")
+if hasattr(modelo, "estimators_"):
+    print("Número de árboles:", len(modelo.estimators_))
+    print("Tipo de estimador base:", type(modelo.estimators_[0]))
+
+print("\n=== IMPORTANCIA DE FEATURES ===")
+pprint(modelo.feature_importances_)
+
+print("\n=== PRUEBA DE PREDICCIÓN ===")
+entrada = [[0] * modelo.n_features_in_]
+print("Predicción dummy:", modelo.predict(entrada))
