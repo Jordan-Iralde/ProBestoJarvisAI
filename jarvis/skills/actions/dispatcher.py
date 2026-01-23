@@ -1,4 +1,5 @@
 # actions/dispatcher.py
+import inspect
 
 class SkillDispatcher:
     def __init__(self, logger=None):
@@ -26,14 +27,14 @@ class SkillDispatcher:
         self.skills[intent_name] = skill_cls
         self._log("debug", f"[DISPATCHER] Registered skill: {intent_name}")
 
-    def dispatch(self, intent, entities, system_state):
+    def dispatch(self, intent, entities, core):
         """
         Ejecuta la skill correspondiente al intent.
         
         Args:
             intent (str): Intent detectado
             entities (dict): Entidades extraídas
-            system_state: Estado del sistema
+            core: Instancia del JarvisCore
             
         Returns:
             dict: Resultado de la ejecución
@@ -49,11 +50,21 @@ class SkillDispatcher:
         try:
             # Instanciar y ejecutar la skill
             skill_cls = self.skills[intent]
-            skill_instance = skill_cls()
-            
+
+            # Verificar si es una clase o ya es una instancia
+            if inspect.isclass(skill_cls):
+                # Es una clase, instanciar
+                skill_instance = skill_cls()
+                self._log("debug", f"[DISPATCHER] Created new instance for {intent}")
+            else:
+                # Ya es una instancia
+                skill_instance = skill_cls
+                self._log("debug", f"[DISPATCHER] Using existing instance for {intent}")
+
             self._log("info", f"[DISPATCHER] Executing skill: {intent}")
-            result = skill_instance.run(entities, system_state)
-            
+            self._log("debug", f"[DISPATCHER] Calling run with entities={entities}, core={type(core)}")
+            result = skill_instance.run(entities, core)
+
             return {
                 "success": True,
                 "intent": intent,
