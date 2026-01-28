@@ -1,6 +1,7 @@
 # brain/nlu/parser.py
 import re
 from brain.nlu.normalizer import Normalizer
+from brain.nlu.soft_phrases import get_intent_for_phrase, get_phrases_for_intent, SOFT_PHRASE_CONFIDENCE_BOOST, SOFT_PHRASE_PARTIAL_CONFIDENCE
 
 
 class IntentParser:
@@ -147,6 +148,15 @@ class IntentParser:
         """Soft matching para frases conversacionales completas"""
         text_lower = text.lower().strip()
         
+        # Use new soft_phrases database
+        intent, confidence_boost, is_exact = get_intent_for_phrase(text_lower, self.norm)
+        
+        if intent:
+            base_confidence = 0.85 if is_exact else 0.65
+            final_confidence = min(0.95, base_confidence + confidence_boost)
+            return intent, final_confidence
+        
+        # Fallback a soft_phrase_maps original
         for intent, phrases in self.soft_phrase_maps.items():
             for phrase in phrases:
                 # Match exacto o contiene la frase
@@ -162,6 +172,23 @@ class IntentParser:
         Returns:
             str: Intent detectado
         """
+        intent, conf = self.parse_with_confidence(text, entities)
+        return intent
+    
+    def parse_with_confidence(self, text: str, entities: dict) -> tuple:
+        """
+        Pipeline principal con sistema de confianza mejorado.
+        
+        Prioridad:
+        1. Entidades (95%)
+        2. Soft phrases exactas (80%)
+        3. Patrones skill (90%)
+        4. Keywords mejorado (70%)
+        5. Unknown (0%)
+        
+        Returns:
+            tuple: (intent: str, confidence: float)
+        """
         t = self.norm.run(text)
         
         # 1. PRIORIDAD MÁXIMA: Entidades
@@ -169,33 +196,101 @@ class IntentParser:
         if intent:
             self._log(f"Intent from entities: {intent} (conf: {conf:.2f})")
             self._record_intent(intent, conf, "entities")
-            return intent
+            return intent, conf
         
-        # 2. Patrones dinámicos por skill
+        # 2. Soft phrase matching (antes de patrones)
+        intent, conf = self._soft_phrase_match(t)
+        if intent and conf >= 0.75:
+            self._log(f"Intent from soft phrases: {intent} (conf: {conf:.2f})")
+            self._record_intent(intent, conf, "soft_phrase")
+            return intent, conf
+        
+        # 3. Patrones dinámicos por skill
         intent, conf = self._match_patterns(t)
         if intent:
             self._log(f"Intent from patterns: {intent} (conf: {conf:.2f})")
             self._record_intent(intent, conf, "patterns")
-            return intent
+            return intent, conf
         
-        # 3. Fallback con keywords
-        intent, conf = self._fallback_keywords(t)
+        # 4. Enhanced keyword fallback
+        intent, conf = self._enhanced_keyword_fallback(t)
         if intent:
             self._log(f"Intent from keywords: {intent} (conf: {conf:.2f})")
             self._record_intent(intent, conf, "keywords")
-            return intent
-        
-        # 4. Soft phrase matching
-        intent, conf = self._soft_phrase_match(t)
-        if intent:
-            self._log(f"Intent from soft phrases: {intent} (conf: {conf:.2f})")
-            self._record_intent(intent, conf, "soft_phrase")
-            return intent
+            return intent, conf
         
         # 5. Unknown
         self._log(f"No intent detected for: '{text}'")
         self._record_intent("unknown", 0.0, "none")
-        return "unknown"
+        return "unknown", 0.0
+    
+    def _enhanced_keyword_fallback(self, text):
+        """Enhanced fallback with better scoring"""
+        text_lower = text.lower()
+        text_words = set(text_lower.split())
+        scores = {}
+        
+        for intent, keywords in self.keyword_fallback.items():
+            # Count occurrences
+            matches = sum(1 for kw in keywords if kw in text_lower)
+            
+            # Count exact word matches
+            exact_matches = sum(1 for kw in keywords if kw in text_words)
+            
+            # Combined score
+            score = matches + (exact_matches * 0.5)
+            
+            if score > 0:
+                confidence = min(0.7, (score / len(keywords)) * 0.8)
+                scores[intent] = (confidence, score)
+        
+        if scores:
+            best_intent, (conf, _) = max(scores.items(), key=lambda x: x[1][1])
+            return best_intent, conf
+        
+        return None, 0.0
+    
+    def get_alternatives(self, text: str, entities: dict, top_n: int = 2) -> list:
+        """
+        Get alternative intent matches ranked by confidence.
+        
+        Args:
+            text: Input text
+            entities: Extracted entities
+            top_n: Number of alternatives to return
+            
+        Returns:
+            List of (intent, confidence) tuples
+        """
+        t = self.norm.run(text)
+        candidates = []
+        
+        # Collect all possible matches with confidence
+        intent, conf = self._infer_from_entities(entities)
+        if intent:
+            candidates.append((intent, conf, "entities"))
+        
+        intent, conf = self._match_patterns(t)
+        if intent:
+            candidates.append((intent, conf, "patterns"))
+        
+        intent, conf = self._fallback_keywords(t)
+        if intent and conf > 0.3:
+            candidates.append((intent, conf, "keywords"))
+        
+        intent, conf = self._soft_phrase_match(t)
+        if intent:
+            candidates.append((intent, conf, "soft_phrase"))
+        
+        # Sort by confidence descending and remove duplicates
+        seen = set()
+        unique_candidates = []
+        for intent, conf, source in sorted(candidates, key=lambda x: x[1], reverse=True):
+            if intent not in seen:
+                unique_candidates.append((intent, conf))
+                seen.add(intent)
+        
+        return unique_candidates[:top_n]
     
     def _record_intent(self, intent: str, confidence: float, source: str):
         """Registra intent para análisis posterior"""

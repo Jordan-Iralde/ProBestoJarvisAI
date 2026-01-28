@@ -4,6 +4,7 @@ import signal
 import sys
 import argparse
 from system.core import JarvisCore
+from system.core.v004_bootstrap import full_bootstrap
 
 def load_config():
     base = os.path.dirname(__file__)
@@ -57,6 +58,11 @@ def main():
 
     # boot del sistema
     core.boot()
+
+    # ✨ NEW: Bootstrap v0.0.4 features
+    # This initializes soft phrases, PC monitoring, debug mode, background tasks, etc.
+    if not full_bootstrap(core):
+        print("⚠️  Warning: v0.0.4 bootstrap had issues, but continuing...")
 
     # handler de interrupción limpia
     def shutdown(sig, frame):

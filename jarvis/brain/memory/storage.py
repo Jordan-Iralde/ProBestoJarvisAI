@@ -165,3 +165,111 @@ class JarvisStorage:
             }
             for row in rows
         ]
+
+    def get_storage_stats(self) -> Dict[str, Any]:
+        """Get storage statistics"""
+        with self._lock:
+            with sqlite3.connect(self.db_path) as conn:
+                # Count conversations
+                conv_count = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
+                fact_count = conn.execute("SELECT COUNT(*) FROM facts").fetchone()[0]
+                event_count = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+                
+                # Get oldest and newest conversations
+                oldest = conn.execute(
+                    "SELECT timestamp FROM conversations ORDER BY id ASC LIMIT 1"
+                ).fetchone()
+                newest = conn.execute(
+                    "SELECT timestamp FROM conversations ORDER BY id DESC LIMIT 1"
+                ).fetchone()
+        
+        return {
+            "conversations": conv_count,
+            "facts": fact_count,
+            "events": event_count,
+            "oldest_interaction": oldest[0] if oldest else None,
+            "newest_interaction": newest[0] if newest else None
+        }
+
+    def cleanup_old_conversations(self, days: int = 30) -> int:
+        """
+        Delete conversations older than N days
+        
+        Returns:
+            Number of rows deleted
+        """
+        from datetime import timedelta
+        cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+        
+        with self._lock:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute(
+                    "DELETE FROM conversations WHERE timestamp < ?",
+                    (cutoff,)
+                )
+                deleted = cursor.rowcount
+                conn.commit()
+        
+        return deleted
+
+    def get_conversation_summary(self, limit: int = 50) -> Dict[str, Any]:
+        """Get conversation summary statistics"""
+        conversations = self.get_last_conversations(limit)
+        
+        if not conversations:
+            return {
+                "total": 0,
+                "avg_response_length": 0,
+                "avg_input_length": 0,
+                "sources": {}
+            }
+        
+        sources = {}
+        total_response_length = 0
+        total_input_length = 0
+        
+        for conv in conversations:
+            source = conv.get("source", "unknown")
+            sources[source] = sources.get(source, 0) + 1
+            total_response_length += len(conv.get("response", ""))
+            total_input_length += len(conv.get("user_input", ""))
+        
+        return {
+            "total": len(conversations),
+            "avg_response_length": total_response_length // len(conversations) if conversations else 0,
+            "avg_input_length": total_input_length // len(conversations) if conversations else 0,
+            "sources": sources
+        }
+
+    def prune_database(self) -> Dict[str, int]:
+        """
+        Prune database by removing old data
+        
+        Returns:
+            Dict with number of rows deleted per table
+        """
+        results = {
+            "conversations_deleted": self.cleanup_old_conversations(days=30),
+            "events_pruned": 0
+        }
+        
+        # Also keep events pruned
+        with self._lock:
+            with sqlite3.connect(self.db_path) as conn:
+                # Keep only last 500 events
+                cursor = conn.execute(
+                    "SELECT COUNT(*) FROM events"
+                ).fetchone()
+                total_events = cursor[0]
+                
+                if total_events > 500:
+                    # Delete oldest events
+                    to_delete = total_events - 500
+                    cursor = conn.execute(
+                        "DELETE FROM events WHERE id IN (SELECT id FROM events ORDER BY id ASC LIMIT ?)",
+                        (to_delete,)
+                    )
+                    results["events_pruned"] = cursor.rowcount
+                    conn.commit()
+        
+        return results
